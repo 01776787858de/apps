@@ -120,13 +120,11 @@
 </div>
 
 <script>
-    // الإعدادات المربوطة بمستودعك الجديد
     const OWNER = "01776787858de";
-    const REPO = "store"; 
+    const REPO = "apps"; // <--- قمت بتعديل اسم المستودع هنا ليطابق مستودعك
 
     let allApps = [];
 
-    // نظام تشغيل وضع المظهر الداكن
     function toggleTheme() {
         const isDark = document.body.getAttribute('data-theme') === 'dark';
         if(isDark) { document.body.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); }
@@ -134,7 +132,6 @@
     }
     if(localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
 
-    // الإشعارات الذكية الملونة
     function showToast(msg, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -146,7 +143,6 @@
         setTimeout(() => { toast.remove(); }, 4000);
     }
 
-    // تنظيف وضبط اسم الملف تلقائياً عند الاختيار
     document.getElementById('apkFile').addEventListener('change', function(e) {
         if(e.target.files[0]) {
             let name = e.target.files[0].name.replace(/\s+/g, '_');
@@ -155,7 +151,6 @@
         }
     });
 
-    // جلب التطبيقات وعرضها للزوار
     async function loadFiles() {
         const token = localStorage.getItem('git_token') || "";
         const headers = token ? { 'Authorization': `token ${token}` } : {};
@@ -172,7 +167,6 @@
         }
     }
 
-    // بناء كروت التطبيقات مع كل الميزات المطلوبة
     function renderApps() {
         const container = document.getElementById('deployedApps');
         container.innerHTML = "";
@@ -215,7 +209,6 @@
         });
     }
 
-    // كود ميزة المشاركة الذكية عبر تطبيقات الجوال
     function shareApp(name, url) {
         if (navigator.share) {
             navigator.share({ title: `تحميل ${name}`, text: `حمل تطبيق ${name} برابط مباشر سريع وآمن:`, url: url });
@@ -225,13 +218,11 @@
         }
     }
 
-    // كود معالجة وتجهيز الرابط لتطبيق Downloader على الشاشات
     function copyDownloader(url) {
         navigator.clipboard.writeText(url);
         showToast("تم النسخ! افتح تطبيق Downloader على الشاشة والصق الرابط مباشرة 📺", "warning");
     }
 
-    // ميزة توليد باركود QR المباشر
     function toggleQR(containerId, url) {
         const element = document.getElementById(containerId);
         if (element.style.display === 'block') {
@@ -244,7 +235,6 @@
         }
     }
 
-    // محرك البحث الذكي والسريع
     function filterApps() {
         const q = document.getElementById('searchAppInput').value.toLowerCase();
         const cards = document.querySelectorAll('.app-card');
@@ -254,7 +244,6 @@
         });
     }
 
-    // إدارة تسجيل دخول لوحة التحكم محلياً
     function saveToken() {
         const token = document.getElementById('githubToken').value.trim();
         if(!token) return showToast("الرجاء إدخال الرمز السري أولاً!", "error");
@@ -268,13 +257,12 @@
         if(token) {
             document.getElementById('tokenScreen').style.display = 'none';
             document.getElementById('adminDashboard').style.display = 'block';
-            loadFiles(); // التحديث لإظهار أزرار الإدارة
+            loadFiles();
         }
     }
 
-    // ميزة حذف التطبيقات المباشرة من السيرفر
     async function deleteApp(path, sha) {
-        if(!confirm("هل أنت متأكد من حذف هذا التطبيق نهائياً من مخزنك السري؟")) return;
+        if(!confirm("هل أنت متأكد من حذف هذا التطبيق نهائياً من مستودعك؟")) return;
         const token = localStorage.getItem('git_token');
         try {
             const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
@@ -287,7 +275,6 @@
         } catch(e) { showToast("فشل الحذف، تأكد من صلاحيات التوكن.", "error"); }
     }
 
-    // 🚀 كود الرفع المتطور مع نظام مشخص وتشخيص الأخطاء الذكي
     function uploadApp() {
         const token = localStorage.getItem('git_token');
         const fileInput = document.getElementById('apkFile');
@@ -297,9 +284,8 @@
 
         const file = fileInput.files[0];
         
-        // حماية من حد حجم ملفات واجهة جيت هاب (25 ميجابايت)
         if(file.size > 25 * 1024 * 1024) {
-            alert("⚠️ تنبيه هام: حجم التطبيق أكبر من 25 ميجابايت. واجهة البرمجة (API) تمنع رفع الأحجام الكبيرة من هنا لتجنب تعليق المتصفح. ارفعه يدوياً مباشرة من موقع GitHub داخل مجلد store وسيقوم موقعك بقراءته وعرضه هنا فوراً وبسرعة صاروخية!");
+            alert("⚠️ تنبيه هام: حجم التطبيق أكبر من 25 ميجابايت. واجهة البرمجة (API) تمنع رفع الأحجام الكبيرة من هنا لتجنب تعليق المتصفح. ارفعه يدوياً مباشرة من موقع GitHub داخل مجلد apps وسيقوم موقعك بقراءته وعرضه هنا فوراً وبسرعة صاروخية!");
             return;
         }
 
@@ -333,12 +319,11 @@
                         loadFiles();
                     }, 1500);
                 } else {
-                    // مشخص الأخطاء الذكي يحلل الرد القادم من GitHub ويعطيك النتيجة
                     const errorData = await res.json();
                     if(res.status === 401) {
                         showToast("خطأ 401: رمز الـ Token السري الذي أدخلته غير صحيح أو انتهت صلاحيته!", "error");
                     } else if(res.status === 404) {
-                        showToast("خطأ 404: لم يتم العثور على المستودع. تأكد من أن اسم المستودع الحالي هو store بالضبط!", "error");
+                        showToast("خطأ 404: لم يتم العثور على المستودع.", "error");
                     } else {
                         showToast("فشل الرفع: " + (errorData.message || "خطأ غير معروف"), "error");
                     }
