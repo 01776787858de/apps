@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الاحترافية 🚀</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        h1, h2 { margin: 0; color: var(--primary); }
+
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); font-size: 15px; outline: none; }
+        input:focus { border-color: var(--primary); }
+
+        button { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; color: white; transition: 0.2s; }
+        .btn-primary { background: var(--primary); width: 100%; font-size: 16px; padding: 12px; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); }
+        .btn-warning { background: var(--warning); color: #000; }
+        .btn-danger { background: var(--danger); }
+
+        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
+        .app-card { background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .app-title { font-size: 16px; font-weight: bold; word-break: break-all; color: var(--primary); }
+        .app-meta { font-size: 12px; color: #94a3b8; }
+        .app-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+
+        .progress-wrapper { display: none; margin-top: 15px; background-color: var(--border); border-radius: 8px; height: 25px; overflow: hidden; position: relative; }
+        .progress-bar { width: 0%; height: 100%; background-color: var(--success); transition: width 0.3s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-weight: bold; }
+
+        #toast-container { position: fixed; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+        .toast { background: var(--text-main); color: var(--bg-color); padding: 12px 20px; border-radius: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="container">
+    <div class="header">
+        <h1>متجر وتطبيقات أبو سعيد 📱</h1>
+    </div>
+
+    <div id="adminSection" style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px dashed var(--primary); margin-bottom: 30px;">
+        <div id="tokenScreen">
+            <h3 style="margin-top:0;">🔒 تفعيل الصلاحيات (للمدير)</h3>
+            <input type="password" id="githubToken" placeholder="أدخل GitHub Token السري هنا..." class="form-group">
+            <button class="btn-primary" onclick="saveToken()">دخول 🔑</button>
+        </div>
+
+        <div id="uploadScreen" style="display:none;">
+            <h3 style="margin-top:0;">☁️ رفع تطبيق جديد (سريع للأحجام أقل من 25MB)</h3>
+            <div class="form-group"><input type="file" id="apkFile" accept=".apk"></div>
+            <div class="form-group"><input type="text" id="apkName" placeholder="الاسم (مثال: iptv_app.apk)"></div>
+            <button class="btn-primary" onclick="uploadApp()">بدء الرفع ⬆️</button>
+            
+            <div class="progress-wrapper" id="progressWrapper">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <input type="text" id="searchInput" placeholder="🔍 بحث عن تطبيق..." onkeyup="filterApps()" style="margin-bottom: 15px;">
+    
+    <div id="appsGrid" class="apps-grid">⏳ جاري جلب البيانات...</div>
+</div>
+
+<script>
+    // 🔴 تأكد من كتابة اسم حسابك هنا بشكل صحيح
+    const OWNER = "01776787858de"; 
+    const REPO = "store"; // اسم المستودع الجديد
+
+    let allApps = [];
+
+    function showToast(msg, type = 'success') {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.style.backgroundColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+        t.innerText = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+
+    document.getElementById('apkFile').addEventListener('change', function(e) {
+        if(e.target.files[0]) {
+            let name = e.target.files[0].name.replace(/\s+/g, '_');
+            if(!name.endsWith('.apk')) name += '.apk';
+            document.getElementById('apkName').value = name;
+        }
+    });
+
+    function saveToken() {
+        const t = document.getElementById('githubToken').value.trim();
+        if(!t) return showToast("أدخل الرمز!", "error");
+        localStorage.setItem('git_token', t);
+        checkAdmin();
+    }
+
+    function checkAdmin() {
+        if(localStorage.getItem('git_token')) {
+            document.getElementById('tokenScreen').style.display = 'none';
+            document.getElementById('uploadScreen').style.display = 'block';
+            loadFiles();
+        }
+    }
+
+    async function loadFiles() {
+        const token = localStorage.getItem('git_token') || '';
+        const headers = token ? { 'Authorization': `token ${token}` } : {};
+        try {
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/`, { headers, cache: 'no-store' });
+            if(!res.ok) throw new Error();
+            const files = await res.json();
+            allApps = files.filter(f => f.name.toLowerCase().endsWith('.apk'));
+            renderApps();
+        } catch (e) {
+            document.getElementById('appsGrid').innerHTML = "لا توجد تطبيقات أو حدث خطأ بالاتصال.";
+        }
+    }
+
+    function renderApps() {
+        const grid = document.getElementById('appsGrid');
+        grid.innerHTML = "";
+        const isAdmin = document.getElementById('uploadScreen').style.display === 'block';
+
+        if(allApps.length === 0) return grid.innerHTML = "<p>المتجر فارغ حالياً.</p>";
+
+        allApps.forEach(file => {
+            const directUrl = `https://${OWNER}.github.io/${REPO}/${file.name}`;
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            
+            grid.innerHTML += `
+                <div class="app-card">
+                    <div class="app-title">📦 ${file.name}</div>
+                    <div class="app-meta">حجم الملف: ${sizeMB}</div>
+                    <div class="app-actions">
+                        <button class="btn-success" onclick="copyLink('${directUrl}')">رابط عادي 🔗</button>
+                        <button class="btn-warning" onclick="copyDownloader('${directUrl}')">لـ Downloader 📺</button>
+                        ${isAdmin ? `<button class="btn-danger" style="grid-column: span 2;" onclick="deleteApp('${file.path}', '${file.sha}')">حذف التطبيق 🗑️</button>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function copyLink(url) {
+        navigator.clipboard.writeText(url);
+        showToast("تم نسخ الرابط المباشر!");
+    }
+
+    function copyDownloader(url) {
+        // نسخ الرابط لتطبيق داونلودر مباشرة
+        navigator.clipboard.writeText(url);
+        showToast("تم نسخ الرابط! الصقه في تطبيق Downloader مباشرة.");
+        // إذا أردت استخراج كود قصير حقيقي، يجب عليك استخدام موقع http://aftv.news
+    }
+
+    function filterApps() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.app-card');
+        cards.forEach(card => {
+            card.style.display = card.querySelector('.app-title').innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+        });
+    }
+
+    async function deleteApp(path, sha) {
+        if(!confirm("حذف نهائي؟")) return;
+        const token = localStorage.getItem('git_token');
+        try {
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'DELETE', headers: { 'Authorization': `token ${token}` },
+                body: JSON.stringify({ message: `Delete ${path}`, sha })
+            });
+            if(res.ok) { showToast("تم الحذف!"); loadFiles(); }
+        } catch(e) { showToast("خطأ", "error"); }
+    }
+
+    function uploadApp() {
+        const token = localStorage.getItem('git_token');
+        const fileInput = document.getElementById('apkFile');
+        const nameInput = document.getElementById('apkName').value.trim();
+        if(!fileInput.files.length || !nameInput) return showToast("اختر ملف واسم!", "error");
+
+        const file = fileInput.files[0];
+        
+        // حماية من تعليق المتصفح للملفات الضخمة
+        if(file.size > 25 * 1024 * 1024) {
+            return alert("تنبيه: حجم الملف يتجاوز 25 ميجا. يرجى رفعه يدوياً من موقع GitHub مباشرة لتجنب فشل الرفع.");
+        }
+
+        const reader = new FileReader();
+        document.getElementById('progressWrapper').style.display = 'block';
+        document.getElementById('progressBar').style.width = '40%';
+        document.getElementById('progressText').innerText = 'تجهيز...';
+
+        reader.onload = async function() {
+            document.getElementById('progressBar').style.width = '70%';
+            const content = reader.result.split(',')[1];
+            try {
+                const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${nameInput}`, {
+                    method: 'PUT', headers: { 'Authorization': `token ${token}` },
+                    body: JSON.stringify({ message: `Upload ${nameInput}`, content })
+                });
+                if(res.ok) {
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('progressText').innerText = 'تم الرفع!';
+                    showToast("تمت العملية بنجاح!");
+                    setTimeout(() => { document.getElementById('progressWrapper').style.display = 'none'; loadFiles(); }, 1500);
+                } else { throw new Error(); }
+            } catch(e) { showToast("فشل الرفع", "error"); document.getElementById('progressWrapper').style.display='none'; }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    window.onload = () => { checkAdmin(); loadFiles(); };
+</script>
+</body>
+</html>
