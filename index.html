@@ -1,69 +1,205 @@
-reader.readAsArrayBuffer(file);
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة الرفع</title>
 
-reader.onload = function(e) {
+<style>
+body{
+font-family:Arial;
+padding:20px;
+background:#f2f2f2;
+}
 
-    const bytes = new Uint8Array(e.target.result);
+.box{
+max-width:700px;
+margin:auto;
+background:#fff;
+padding:20px;
+border-radius:10px;
+}
 
-    let binary = "";
-    const chunk = 8192;
+button{
+width:100%;
+padding:12px;
+margin-top:10px;
+}
 
-    for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(
-            null,
-            bytes.subarray(i, i + chunk)
-        );
-    }
+.progress{
+height:28px;
+background:#ddd;
+margin-top:10px;
+display:none;
+}
 
-    const base64Content = btoa(binary);
+.bar{
+height:100%;
+width:0%;
+background:#22c55e;
+color:white;
+text-align:center;
+}
+</style>
 
-    const bodyData = {
-        message: `Upload ${filename}`,
-        content: base64Content
-    };
+</head>
 
-    if (sha) bodyData.sha = sha;
+<body>
 
-    const xhr = new XMLHttpRequest();
+<div class="box">
 
-    xhr.open(
-        "PUT",
-        `https://api.github.com/repos/${REPO}/contents/${filename}`,
-        true
-    );
+<h2>رفع APK</h2>
 
-    xhr.setRequestHeader(
-        "Authorization",
-        `token ${token}`
-    );
+<input type="password"
+id="token"
+placeholder="GitHub Token">
 
-    xhr.setRequestHeader(
-        "Content-Type",
-        "application/json"
-    );
+<br><br>
 
-    xhr.onload = function() {
+<input
+type="file"
+id="apk"
+accept=".apk">
 
-        uploadBtn.disabled = false;
+<br><br>
 
-        progressContainer.style.display = "none";
+<input
+type="text"
+id="name"
+placeholder="اسم الملف.apk">
 
-        if (xhr.status >= 200 && xhr.status < 300) {
+<button onclick="upload()">
 
-            showToast(
-                "تم الرفع بنجاح 🎉",
-                "success"
-            );
+رفع
 
-            fetchFiles();
+</button>
 
-        } else {
+<div
+class="progress"
+id="progress">
 
-            showToast(
-                "GitHub رفض الملف (الحجم كبير)",
-                "error"
-            );
-        }
-    };
+<div
+class="bar"
+id="bar">
 
-    xhr.send(JSON.stringify(bodyData));
+0%
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const REPO="01776787858de/apps";
+
+async function upload(){
+
+const token=
+document
+.getElementById("token")
+.value;
+
+const file=
+document
+.getElementById("apk")
+.files[0];
+
+const filename=
+document
+.getElementById("name")
+.value;
+
+if(!token||!file){
+
+alert("أدخل الرمز واختر الملف");
+
+return;
+
+}
+
+const progress=
+document
+.getElementById("progress");
+
+const bar=
+document
+.getElementById("bar");
+
+progress.style.display="block";
+
+bar.style.width="10%";
+
+const reader=
+new FileReader();
+
+reader.onload=
+async e=>{
+
+bar.style.width="50%";
+
+const base64=
+e.target
+.result
+.split(",")[1];
+
+const res=
+await fetch(
+
+`https://api.github.com/repos/${REPO}/contents/${filename}`,
+
+{
+
+method:"PUT",
+
+headers:{
+
+Authorization:
+`token ${token}`,
+
+"Content-Type":
+"application/json"
+
+},
+
+body:
+JSON.stringify({
+
+message:
+"upload",
+
+content:
+base64
+
+})
+
+}
+
+);
+
+if(res.ok){
+
+bar.style.width="100%";
+
+bar.innerText="تم";
+
+alert("نجح");
+
+}else{
+
+alert("فشل");
+
+}
+
 };
+
+reader.readAsDataURL(file);
+
+}
+
+</script>
+
+</body>
+
+</html>
