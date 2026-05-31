@@ -1,323 +1,69 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة الآمنة</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 800px; background: white; margin: 0 auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1, h2 { color: #1a73e8; border-bottom: 2px solid #e8eaed; padding-bottom: 10px; margin-top: 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
-        button { background-color: #1a73e8; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 5px; transition: 0.2s; }
-        button:hover { background-color: #1557b0; }
-        
-        .buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .btn-small { width: auto; padding: 8px 12px; font-size: 13px; flex: 1; min-width: 130px; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        
-        .btn-copy { background-color: #3b82f6; }
-        .btn-shorten { background-color: #8b5cf6; } 
-        .btn-downloader { background-color: #f59e0b; color: #000; } 
-        .btn-replace { background-color: #10b981; }
-        .btn-delete { background-color: #ef4444; }
-        
-        .progress-container { display: none; margin-top: 15px; background-color: #e0e0e0; border-radius: 6px; overflow: hidden; height: 28px; }
-        .progress-bar { width: 0%; height: 100%; background-color: #34a853; text-align: center; line-height: 28px; color: white; transition: width 0.2s; font-weight: bold; }
-        .file-item { background: #f8f9fa; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 12px; border-radius: 8px; }
-        .file-name { font-weight: bold; font-size: 17px; color: #1e293b; margin-bottom: 8px; }
-        .file-link { display: block; font-size: 13px; color: #64748b; background: #e2e8f0; padding: 8px; margin-bottom: 10px; direction: ltr; text-align: left; word-break: break-all; border-radius: 4px; }
-        
-        #tokenScreen { background: #fff3cd; padding: 20px; border-radius: 8px; border: 1px solid #ffeeba; margin-bottom: 20px; }
+reader.readAsArrayBuffer(file);
 
-        /* نظام الإشعارات الجديد والجميل */
-        #toast-container { position: fixed; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
-        .toast { padding: 14px 24px; border-radius: 8px; font-weight: bold; color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.2); animation: slide 0.3s ease; }
-        @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-    </style>
-</head>
-<body>
+reader.onload = function(e) {
 
-<div id="toast-container"></div>
+    const bytes = new Uint8Array(e.target.result);
 
-<div class="container">
-    <h1>لوحة إدارة تطبيقات المتجر 📱</h1>
+    let binary = "";
+    const chunk = 8192;
 
-    <div id="tokenScreen">
-        <h3 style="margin-top:0;">إعداد الأمان 🔒</h3>
-        <p>يرجى وضع GitHub Token الخاص بك هنا. (يُحفظ في جهازك فقط).</p>
-        <div class="form-group">
-            <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxx...">
-        </div>
-        <button onclick="saveToken()" style="background-color: #28a745;">حفظ الرمز والدخول ✔️</button>
-    </div>
+    for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(
+            null,
+            bytes.subarray(i, i + chunk)
+        );
+    }
 
-    <div id="mainDashboard" style="display: none;">
-        <div class="form-group">
-            <label>1. اختر التطبيق من الجوال:</label>
-            <input type="file" id="apkFile" accept=".apk">
-        </div>
-        <div class="form-group">
-            <label>2. اسم التطبيق النهائي:</label>
-            <input type="text" id="appName" placeholder="مثال: iptv-app.apk">
-        </div>
-        <button id="uploadBtn" onclick="uploadFile()">🚀 رفع التطبيق للسيرفر</button>
-        <button onclick="logout()" style="background-color: #64748b; margin-top: 10px;">تسجيل الخروج (مسح الرمز)</button>
+    const base64Content = btoa(binary);
 
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar" id="progressBar">0%</div>
-        </div>
+    const bodyData = {
+        message: `Upload ${filename}`,
+        content: base64Content
+    };
 
-        <div style="margin-top: 40px;">
-            <h2>📦 التطبيقات المرفوعة</h2>
-            <div id="filesContainer">⏳ جاري جلب التطبيقات...</div>
-        </div>
-    </div>
-</div>
+    if (sha) bodyData.sha = sha;
 
-<script>
-    const REPO = "01776787858de/apps";
-    const GITHUB_PAGES_URL = "https://01776787858de.github.io/apps";
-    
-    window.onload = function() {
-        const token = localStorage.getItem("github_token");
-        if (token) {
-            document.getElementById("tokenScreen").style.display = "none";
-            document.getElementById("mainDashboard").style.display = "block";
+    const xhr = new XMLHttpRequest();
+
+    xhr.open(
+        "PUT",
+        `https://api.github.com/repos/${REPO}/contents/${filename}`,
+        true
+    );
+
+    xhr.setRequestHeader(
+        "Authorization",
+        `token ${token}`
+    );
+
+    xhr.setRequestHeader(
+        "Content-Type",
+        "application/json"
+    );
+
+    xhr.onload = function() {
+
+        uploadBtn.disabled = false;
+
+        progressContainer.style.display = "none";
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+
+            showToast(
+                "تم الرفع بنجاح 🎉",
+                "success"
+            );
+
             fetchFiles();
+
+        } else {
+
+            showToast(
+                "GitHub رفض الملف (الحجم كبير)",
+                "error"
+            );
         }
     };
 
-    // دالة الإشعارات الهادئة بديلة الـ Alert
-    function showToast(msg, type = 'success') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.style.backgroundColor = type === 'error' ? '#ef4444' : (type === 'warning' ? '#f59e0b' : '#10b981');
-        if(type === 'warning') toast.style.color = '#000';
-        toast.innerText = msg;
-        container.appendChild(toast);
-        setTimeout(() => { toast.remove(); }, 4000);
-    }
-
-    function saveToken() {
-        const tokenVal = document.getElementById("ghTokenInput").value.trim();
-        if (!tokenVal.startsWith("ghp_") && !tokenVal.startsWith("github_pat_")) {
-            showToast("الرمز غير صحيح! يجب أن يبدأ بـ ghp_ أو github_pat_", "error");
-            return;
-        }
-        localStorage.setItem("github_token", tokenVal);
-        document.getElementById("tokenScreen").style.display = "none";
-        document.getElementById("mainDashboard").style.display = "block";
-        fetchFiles();
-        showToast("تم الدخول بنجاح!", "success");
-    }
-
-    function logout() {
-        localStorage.removeItem("github_token");
-        location.reload();
-    }
-
-    document.getElementById('apkFile').addEventListener('change', function(e) {
-        if(e.target.files[0]) {
-            let name = e.target.files[0].name.replace(/\s+/g, '-').toLowerCase();
-            if(!name.endsWith('.apk')) name += '.apk';
-            document.getElementById('appName').value = name;
-        }
-    });
-
-    async function fetchFiles() {
-        const token = localStorage.getItem("github_token");
-        const container = document.getElementById('filesContainer');
-        try {
-            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/`, {
-                headers: { "Authorization": `token ${token}` },
-                cache: "no-store"
-            });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.message || "خطأ في جلب الملفات");
-            
-            const apkFiles = data.filter(f => f.name.endsWith('.apk'));
-            if(apkFiles.length === 0) {
-                container.innerHTML = "<p>لا يوجد تطبيقات حالياً.</p>";
-                return;
-            }
-
-            container.innerHTML = "";
-            apkFiles.forEach(file => {
-                const downloadUrl = `${GITHUB_PAGES_URL}/${file.path}`;
-                const btnShortId = `btn-short-${file.sha}`;
-
-                container.innerHTML += `
-                    <div class="file-item">
-                        <div class="file-name">🤖 ${file.name}</div>
-                        <div class="file-link" id="link-${file.sha}">${downloadUrl}</div>
-                        
-                        <div class="buttons-grid">
-                            <button class="btn-small btn-copy" onclick="copyLink('${file.sha}')">📋 نسخ الرابط</button>
-                            <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (Tiny)</button>
-                            <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')">📺 كود AFTVnews</button>
-                            <button class="btn-small btn-replace" onclick="replaceFile('${file.name}', '${file.sha}')">🔄 استبدال</button>
-                            <button class="btn-small btn-delete" onclick="deleteFile('${file.name}', '${file.sha}')">❌ حذف</button>
-                        </div>
-                    </div>
-                `;
-            });
-        } catch (err) {
-            container.innerHTML = `<p style="color:red;">خطأ: ${err.message}</p>`;
-        }
-    }
-
-    function copyLink(sha) {
-        const link = document.getElementById(`link-${sha}`).innerText;
-        navigator.clipboard.writeText(link).then(() => {
-            showToast("تم نسخ الرابط بنجاح! ✅", "success");
-        }).catch(() => showToast("فشل النسخ.", "error"));
-    }
-
-    async function generateShortLink(url, btnId) {
-        const btn = document.getElementById(btnId);
-        btn.innerHTML = "⏳ جاري التقصير...";
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
-            if (!response.ok) throw new Error("فشل الاتصال");
-            
-            const shortUrl = await response.text();
-            let cleanUrl = shortUrl.replace(/^https?:\/\//, ''); 
-            
-            btn.innerHTML = `✅ ${cleanUrl}`;
-            btn.style.backgroundColor = "#10b981"; 
-            btn.disabled = false;
-            
-            btn.onclick = function() {
-                navigator.clipboard.writeText(shortUrl).then(() => {
-                    showToast(`تم نسخ الرابط: ${cleanUrl}`, "success");
-                });
-            };
-        } catch (error) {
-            btn.innerHTML = "❌ فشل، حاول مجدداً";
-            btn.style.backgroundColor = "#ef4444"; 
-            btn.disabled = false;
-        }
-    }
-
-    function openDownloaderSite(url) {
-        window.open("https://create.aftvnews.com/", "_blank");
-        navigator.clipboard.writeText(url).then(() => {
-            showToast("تم نسخ الرابط! الصقه في موقع AFTVnews.", "success");
-        }).catch(() => {
-            showToast("يرجى نسخ الرابط يدوياً", "warning");
-        });
-    }
-
-    async function deleteFile(filename, sha) {
-        if(!confirm(`هل أنت متأكد من حذف ${filename} نهائياً؟`)) return;
-        const token = localStorage.getItem("github_token");
-        
-        try {
-            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${filename}`, {
-                method: "DELETE",
-                headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ message: `Delete ${filename}`, sha: sha })
-            });
-            if(res.ok) {
-                showToast("تم الحذف بنجاح! 🗑️", "success");
-                fetchFiles();
-            } else {
-                showToast("فشل الحذف!", "error");
-            }
-        } catch(e) { showToast("خطأ: " + e.message, "error"); }
-    }
-
-    function replaceFile(filename, sha) {
-        const fileInput = document.getElementById('apkFile');
-        if(!fileInput.files[0]) {
-            // هنا تظهر الرسالة الهادئة بدلاً من التنبيه المزعج
-            showToast("⚠️ الرجاء اختيار ملف التطبيق الجديد من الأعلى أولاً!", "warning");
-            return;
-        }
-        if(confirm(`هل تريد استبدال ${filename} بالملف الجديد؟`)) {
-            processUpload(fileInput.files[0], filename, sha);
-        }
-    }
-
-    function uploadFile() {
-        const file = document.getElementById('apkFile').files[0];
-        const filename = document.getElementById('appName').value.trim();
-        
-        if (!file) {
-            showToast("⚠️ الرجاء اختيار ملف APK من جهازك أولاً!", "warning");
-            return;
-        }
-        if (!filename.endsWith('.apk')) {
-            showToast("يجب أن ينتهي اسم الملف بـ .apk", "error");
-            return;
-        }
-        
-        processUpload(file, filename, null);
-    }
-
-    function processUpload(file, filename, sha) {
-        const token = localStorage.getItem("github_token");
-        const uploadBtn = document.getElementById('uploadBtn');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressBar = document.getElementById('progressBar');
-        
-        uploadBtn.disabled = true;
-        progressContainer.style.display = "block";
-        progressBar.style.width = "5%";
-        progressBar.innerText = "جاري قراءة الملف...";
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64Content = e.target.result.split(',')[1];
-            
-            const bodyData = { message: `Upload ${filename}`, content: base64Content };
-            if(sha) bodyData.sha = sha;
-
-            const xhr = new XMLHttpRequest();
-            xhr.open("PUT", `https://api.github.com/repos/${REPO}/contents/${filename}`, true);
-            xhr.setRequestHeader("Authorization", `token ${token}`);
-            xhr.setRequestHeader("Content-Type", "application/json");
-
-            xhr.upload.onprogress = function(event) {
-                if (event.lengthComputable) {
-                    const percentComplete = Math.round((event.loaded / event.total) * 100);
-                    progressBar.style.width = percentComplete + "%";
-                    progressBar.innerText = percentComplete + "%";
-                }
-            };
-
-            xhr.onload = function() {
-                uploadBtn.disabled = false;
-                progressContainer.style.display = "none";
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    showToast("تم الرفع بنجاح للوحة! 🎉", "success");
-                    document.getElementById('apkFile').value = "";
-                    document.getElementById('appName').value = "";
-                    fetchFiles();
-                } else {
-                    const err = JSON.parse(xhr.responseText);
-                    showToast("خطأ أثناء الرفع: (قد يكون الملف كبيراً جداً)", "error");
-                }
-            };
-
-            xhr.onerror = function() {
-                uploadBtn.disabled = false;
-                progressContainer.style.display = "none";
-                showToast("حدث خطأ في الاتصال بالإنترنت.", "error");
-            };
-
-            xhr.send(JSON.stringify(bodyData));
-        };
-        
-        reader.readAsDataURL(file);
-    }
-</script>
-
-</body>
-</html>
+    xhr.send(JSON.stringify(bodyData));
+};
