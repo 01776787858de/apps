@@ -89,7 +89,6 @@
         }
     };
 
-    // دالة الإشعارات الهادئة بديلة الـ Alert
     function showToast(msg, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -205,8 +204,9 @@
         }
     }
 
+    // هنا تم التحديث للرابط الجديد الصحيح
     function openDownloaderSite(url) {
-        window.open("https://create.aftvnews.com/", "_blank");
+        window.open("https://go.aftvnews.com/", "_blank");
         navigator.clipboard.writeText(url).then(() => {
             showToast("تم نسخ الرابط! الصقه في موقع AFTVnews.", "success");
         }).catch(() => {
@@ -236,7 +236,6 @@
     function replaceFile(filename, sha) {
         const fileInput = document.getElementById('apkFile');
         if(!fileInput.files[0]) {
-            // هنا تظهر الرسالة الهادئة بدلاً من التنبيه المزعج
             showToast("⚠️ الرجاء اختيار ملف التطبيق الجديد من الأعلى أولاً!", "warning");
             return;
         }
