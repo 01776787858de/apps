@@ -3,49 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الاحترافية 🚀</title>
+    <title>متجر أبو سعيد الاحترافي للتطبيقات 🚀</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
+            --bg-color: #f8fafc;
+            --container-bg: #ffffff;
+            --text-color: #0f172a;
             --primary: #3b82f6;
-            --primary-hover: #2563eb;
+            --primary-hover: #1d4ed8;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --border: #334155;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --badge-bg: #f1f5f9;
         }
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        [data-theme="dark"] {
+            --bg-color: #0b0f19;
+            --container-bg: #111827;
+            --text-color: #f9fafb;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --border: #374151;
+            --card-bg: #1f2937;
+            --badge-bg: #111827;
+        }
+        * { box-sizing: border-box; transition: background-color 0.3s, color 0.3s; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--container-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid var(--border); }
         
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
-        h1, h2 { margin: 0; color: var(--primary); }
-
+        .header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 20px; margin-bottom: 25px; }
+        h1 { margin: 0; font-size: 26px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        
         .form-group { margin-bottom: 15px; }
-        input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); font-size: 15px; outline: none; }
-        input:focus { border-color: var(--primary); }
+        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; }
+        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-color); font-size: 15px; outline: none; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        
+        button.main-btn { background-color: var(--primary); color: white; border: none; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        button.main-btn:hover { background-color: var(--primary-hover); }
+        
+        .btn-small { padding: 10px 14px; font-size: 13px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+        .btn-share { background-color: #4b5563; }
+        .btn-downloader { background-color: var(--warning); color: #000; }
+        .btn-theme { background: transparent; border: 2px solid var(--primary); color: var(--primary); font-weight: bold; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
 
-        button { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; color: white; transition: 0.2s; }
-        .btn-primary { background: var(--primary); width: 100%; font-size: 16px; padding: 12px; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); }
-        .btn-warning { background: var(--warning); color: #000; }
-        .btn-danger { background: var(--danger); }
+        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 20px; margin-top: 20px; }
+        .app-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); position: relative; overflow: hidden; }
+        .app-header { display: flex; align-items: center; gap: 12px; }
+        .app-avatar { width: 45px; height: 45px; background: var(--primary); color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
+        .app-title { font-size: 17px; font-weight: bold; word-break: break-all; flex: 1; line-height: 1.3; }
+        .app-meta { font-size: 13px; color: #6b7280; background: var(--badge-bg); padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; width: max-content; font-weight: 500; }
+        
+        .app-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; padding-top: 10px; border-top: 1px dashed var(--border); }
+        .admin-actions { grid-column: span 2; display: flex; gap: 8px; margin-top: 5px; }
 
-        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
-        .app-card { background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .app-title { font-size: 16px; font-weight: bold; word-break: break-all; color: var(--primary); }
-        .app-meta { font-size: 12px; color: #94a3b8; }
-        .app-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+        .qr-area { display: none; margin-top: 12px; text-align: center; background: #ffffff; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; animation: fadeIn 0.3s ease; }
+        .qr-area img { margin: 0 auto; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .progress-wrapper { display: none; margin-top: 15px; background-color: var(--border); border-radius: 8px; height: 25px; overflow: hidden; position: relative; }
+        .progress-wrapper { display: none; margin-top: 15px; background-color: var(--border); border-radius: 8px; height: 30px; overflow: hidden; position: relative; }
         .progress-bar { width: 0%; height: 100%; background-color: var(--success); transition: width 0.3s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-weight: bold; }
-
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 30px; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); }
+        
         #toast-container { position: fixed; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
-        .toast { background: var(--text-main); color: var(--bg-color); padding: 12px 20px; border-radius: 8px; font-weight: bold; }
+        .toast { padding: 14px 24px; border-radius: 8px; font-weight: bold; color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.2); animation: slide 0.3s ease; }
+        @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body>
@@ -53,22 +79,37 @@
 <div id="toast-container"></div>
 
 <div class="container">
-    <div class="header">
-        <h1>متجر وتطبيقات أبو سعيد 📱</h1>
+    <div class="header-flex">
+        <h1>متجر أبو سعيد الذكي 📱</h1>
+        <button class="btn-theme" onclick="toggleTheme()">🌓 المظهر</button>
     </div>
 
-    <div id="adminSection" style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px dashed var(--primary); margin-bottom: 30px;">
+    <div class="form-group">
+        <input type="text" id="searchAppInput" placeholder="🔍 ابحث عن تطبيق متاح الآن..." onkeyup="filterApps()">
+    </div>
+    
+    <div id="deployedApps" class="apps-grid">⏳ جاري فحص المستودع وجلب الملفات...</div>
+
+    <div style="margin-top: 50px; border-top: 2px dashed var(--border); padding-top: 30px;">
         <div id="tokenScreen">
-            <h3 style="margin-top:0;">🔒 تفعيل الصلاحيات (للمدير)</h3>
-            <input type="password" id="githubToken" placeholder="أدخل GitHub Token السري هنا..." class="form-group">
-            <button class="btn-primary" onclick="saveToken()">دخول 🔑</button>
+            <h3>🔒 لوحة الإدارة الآمنة (المدير فقط)</h3>
+            <div class="form-group">
+                <input type="password" id="githubToken" placeholder="أدخل رمز GitHub Token السري لفتح ميزات الرفع والحذف">
+            </div>
+            <button class="main-btn" onclick="saveToken()">تأكيد الهوية ودخول 🔑</button>
         </div>
 
-        <div id="uploadScreen" style="display:none;">
-            <h3 style="margin-top:0;">☁️ رفع تطبيق جديد (سريع للأحجام أقل من 25MB)</h3>
-            <div class="form-group"><input type="file" id="apkFile" accept=".apk"></div>
-            <div class="form-group"><input type="text" id="apkName" placeholder="الاسم (مثال: iptv_app.apk)"></div>
-            <button class="btn-primary" onclick="uploadApp()">بدء الرفع ⬆️</button>
+        <div id="adminDashboard" style="display:none; background: var(--card-bg); padding: 25px; border-radius: 12px; border:1px solid var(--border);">
+            <h3 style="margin-top:0; color:var(--primary);">☁️ مركز رفع التطبيقات السريع</h3>
+            <div class="form-group">
+                <label>اختر ملف الـ APK من جهازك:</label>
+                <input type="file" id="apkFile" accept=".apk">
+            </div>
+            <div class="form-group">
+                <label>اسم الملف النهائي على السيرفر:</label>
+                <input type="text" id="apkName" placeholder="مثال: kodi_tv.apk">
+            </div>
+            <button id="uploadBtn" class="main-btn" onclick="uploadApp()">رفع وتشفير الملف للسيرفر ⬆️</button>
             
             <div class="progress-wrapper" id="progressWrapper">
                 <div class="progress-bar" id="progressBar"></div>
@@ -76,29 +117,36 @@
             </div>
         </div>
     </div>
-
-    <input type="text" id="searchInput" placeholder="🔍 بحث عن تطبيق..." onkeyup="filterApps()" style="margin-bottom: 15px;">
-    
-    <div id="appsGrid" class="apps-grid">⏳ جاري جلب البيانات...</div>
 </div>
 
 <script>
-    // 🔴 تأكد من كتابة اسم حسابك هنا بشكل صحيح
-    const OWNER = "01776787858de"; 
-    const REPO = "store"; // اسم المستودع الجديد
+    // الإعدادات المربوطة بمستودعك الجديد
+    const OWNER = "01776787858de";
+    const REPO = "store"; 
 
     let allApps = [];
 
+    // نظام تشغيل وضع المظهر الداكن
+    function toggleTheme() {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        if(isDark) { document.body.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); }
+        else { document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
+    }
+    if(localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+
+    // الإشعارات الذكية الملونة
     function showToast(msg, type = 'success') {
-        const c = document.getElementById('toast-container');
-        const t = document.createElement('div');
-        t.className = 'toast';
-        t.style.backgroundColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
-        t.innerText = msg;
-        c.appendChild(t);
-        setTimeout(() => t.remove(), 3000);
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.backgroundColor = type === 'error' ? 'var(--danger)' : (type === 'warning' ? 'var(--warning)' : 'var(--success)');
+        if(type === 'warning') toast.style.color = '#000';
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 4000);
     }
 
+    // تنظيف وضبط اسم الملف تلقائياً عند الاختيار
     document.getElementById('apkFile').addEventListener('change', function(e) {
         if(e.target.files[0]) {
             let name = e.target.files[0].name.replace(/\s+/g, '_');
@@ -107,24 +155,12 @@
         }
     });
 
-    function saveToken() {
-        const t = document.getElementById('githubToken').value.trim();
-        if(!t) return showToast("أدخل الرمز!", "error");
-        localStorage.setItem('git_token', t);
-        checkAdmin();
-    }
-
-    function checkAdmin() {
-        if(localStorage.getItem('git_token')) {
-            document.getElementById('tokenScreen').style.display = 'none';
-            document.getElementById('uploadScreen').style.display = 'block';
-            loadFiles();
-        }
-    }
-
+    // جلب التطبيقات وعرضها للزوار
     async function loadFiles() {
-        const token = localStorage.getItem('git_token') || '';
+        const token = localStorage.getItem('git_token') || "";
         const headers = token ? { 'Authorization': `token ${token}` } : {};
+        const container = document.getElementById('deployedApps');
+        
         try {
             const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/`, { headers, cache: 'no-store' });
             if(!res.ok) throw new Error();
@@ -132,105 +168,196 @@
             allApps = files.filter(f => f.name.toLowerCase().endsWith('.apk'));
             renderApps();
         } catch (e) {
-            document.getElementById('appsGrid').innerHTML = "لا توجد تطبيقات أو حدث خطأ بالاتصال.";
+            container.innerHTML = "<p style='color:var(--danger); font-weight:bold;'>⚠️ لا توجد تطبيقات مرفوعة حالياً، أو المستودع فارغ.</p>";
         }
     }
 
+    // بناء كروت التطبيقات مع كل الميزات المطلوبة
     function renderApps() {
-        const grid = document.getElementById('appsGrid');
-        grid.innerHTML = "";
-        const isAdmin = document.getElementById('uploadScreen').style.display === 'block';
+        const container = document.getElementById('deployedApps');
+        container.innerHTML = "";
+        const isAdmin = document.getElementById('adminDashboard').style.display === 'block';
 
-        if(allApps.length === 0) return grid.innerHTML = "<p>المتجر فارغ حالياً.</p>";
+        if(allApps.length === 0) {
+            container.innerHTML = "<p>لا توجد تطبيقات مطابقة.</p>";
+            return;
+        }
 
-        allApps.forEach(file => {
+        allApps.forEach((file, index) => {
             const directUrl = `https://${OWNER}.github.io/${REPO}/${file.name}`;
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            const qrContainerId = `qr-area-${index}`;
+            const firstLetter = file.name.charAt(0).toUpperCase();
             
-            grid.innerHTML += `
+            container.innerHTML += `
                 <div class="app-card">
-                    <div class="app-title">📦 ${file.name}</div>
-                    <div class="app-meta">حجم الملف: ${sizeMB}</div>
-                    <div class="app-actions">
-                        <button class="btn-success" onclick="copyLink('${directUrl}')">رابط عادي 🔗</button>
-                        <button class="btn-warning" onclick="copyDownloader('${directUrl}')">لـ Downloader 📺</button>
-                        ${isAdmin ? `<button class="btn-danger" style="grid-column: span 2;" onclick="deleteApp('${file.path}', '${file.sha}')">حذف التطبيق 🗑️</button>` : ''}
+                    <div class="app-header">
+                        <div class="app-avatar">${firstLetter}</div>
+                        <div class="app-title">${file.name}</div>
                     </div>
+                    <div><span class="app-meta">📦 الحجم: ${sizeMB}</span></div>
+                    
+                    <div class="app-actions">
+                        <button class="btn-small btn-success" onclick="navigator.clipboard.writeText('${directUrl}'); showToast('تم نسخ الرابط المباشر! 📋');">نسخ الرابط 🔗</button>
+                        <button class="btn-small btn-share" onclick="shareApp('${file.name}', '${directUrl}')">مشاركة 📤</button>
+                        <button class="btn-small btn-downloader" onclick="copyDownloader('${directUrl}')">Downloader 📺</button>
+                        <button class="btn-small" style="background:#8b5cf6;" onclick="toggleQR('${qrContainerId}', '${directUrl}')">باركود QR 📱</button>
+                    </div>
+                    
+                    ${isAdmin ? `
+                    <div class="admin-actions">
+                        <button class="btn-small btn-danger" onclick="deleteApp('${file.path}', '${file.sha}')">حذف التطبيق نهائياً 🗑️</button>
+                    </div>` : ''}
+                    
+                    <div id="${qrContainerId}" class="qr-area"></div>
                 </div>
             `;
         });
     }
 
-    function copyLink(url) {
-        navigator.clipboard.writeText(url);
-        showToast("تم نسخ الرابط المباشر!");
+    // كود ميزة المشاركة الذكية عبر تطبيقات الجوال
+    function shareApp(name, url) {
+        if (navigator.share) {
+            navigator.share({ title: `تحميل ${name}`, text: `حمل تطبيق ${name} برابط مباشر سريع وآمن:`, url: url });
+        } else {
+            navigator.clipboard.writeText(url);
+            showToast("المشاركة غير مدعومة بجهازك، تم نسخ الرابط بدلاً من ذلك!", "warning");
+        }
     }
 
+    // كود معالجة وتجهيز الرابط لتطبيق Downloader على الشاشات
     function copyDownloader(url) {
-        // نسخ الرابط لتطبيق داونلودر مباشرة
         navigator.clipboard.writeText(url);
-        showToast("تم نسخ الرابط! الصقه في تطبيق Downloader مباشرة.");
-        // إذا أردت استخراج كود قصير حقيقي، يجب عليك استخدام موقع http://aftv.news
+        showToast("تم النسخ! افتح تطبيق Downloader على الشاشة والصق الرابط مباشرة 📺", "warning");
     }
 
+    // ميزة توليد باركود QR المباشر
+    function toggleQR(containerId, url) {
+        const element = document.getElementById(containerId);
+        if (element.style.display === 'block') {
+            element.style.display = 'none';
+        } else {
+            element.style.display = 'block';
+            if (element.innerHTML === '') {
+                new QRCode(element, { text: url, width: 140, height: 140, colorDark : "#000000", colorLight : "#ffffff" });
+            }
+        }
+    }
+
+    // محرك البحث الذكي والسريع
     function filterApps() {
-        const q = document.getElementById('searchInput').value.toLowerCase();
+        const q = document.getElementById('searchAppInput').value.toLowerCase();
         const cards = document.querySelectorAll('.app-card');
         cards.forEach(card => {
-            card.style.display = card.querySelector('.app-title').innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+            const title = card.querySelector('.app-title').innerText.toLowerCase();
+            card.style.display = title.includes(q) ? 'flex' : 'none';
         });
     }
 
+    // إدارة تسجيل دخول لوحة التحكم محلياً
+    function saveToken() {
+        const token = document.getElementById('githubToken').value.trim();
+        if(!token) return showToast("الرجاء إدخال الرمز السري أولاً!", "error");
+        localStorage.setItem('git_token', token);
+        showToast("تم التحقق من الصلاحيات وتفعيل لوحة المدير!", "success");
+        checkAdminLogin();
+    }
+
+    function checkAdminLogin() {
+        const token = localStorage.getItem('git_token');
+        if(token) {
+            document.getElementById('tokenScreen').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            loadFiles(); // التحديث لإظهار أزرار الإدارة
+        }
+    }
+
+    // ميزة حذف التطبيقات المباشرة من السيرفر
     async function deleteApp(path, sha) {
-        if(!confirm("حذف نهائي؟")) return;
+        if(!confirm("هل أنت متأكد من حذف هذا التطبيق نهائياً من مخزنك السري؟")) return;
         const token = localStorage.getItem('git_token');
         try {
             const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'DELETE', headers: { 'Authorization': `token ${token}` },
+                method: 'DELETE',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: `Delete ${path}`, sha })
             });
-            if(res.ok) { showToast("تم الحذف!"); loadFiles(); }
-        } catch(e) { showToast("خطأ", "error"); }
+            if(res.ok) { showToast("تم مسح الملف من السيرفر بنجاح! 🗑️"); loadFiles(); }
+            else { throw new Error(); }
+        } catch(e) { showToast("فشل الحذف، تأكد من صلاحيات التوكن.", "error"); }
     }
 
+    // 🚀 كود الرفع المتطور مع نظام مشخص وتشخيص الأخطاء الذكي
     function uploadApp() {
         const token = localStorage.getItem('git_token');
         const fileInput = document.getElementById('apkFile');
         const nameInput = document.getElementById('apkName').value.trim();
-        if(!fileInput.files.length || !nameInput) return showToast("اختر ملف واسم!", "error");
+        
+        if(fileInput.files.length === 0 || !nameInput) return showToast("الرجاء اختيار ملف وتحديد اسم له!", "error");
 
         const file = fileInput.files[0];
         
-        // حماية من تعليق المتصفح للملفات الضخمة
+        // حماية من حد حجم ملفات واجهة جيت هاب (25 ميجابايت)
         if(file.size > 25 * 1024 * 1024) {
-            return alert("تنبيه: حجم الملف يتجاوز 25 ميجا. يرجى رفعه يدوياً من موقع GitHub مباشرة لتجنب فشل الرفع.");
+            alert("⚠️ تنبيه هام: حجم التطبيق أكبر من 25 ميجابايت. واجهة البرمجة (API) تمنع رفع الأحجام الكبيرة من هنا لتجنب تعليق المتصفح. ارفعه يدوياً مباشرة من موقع GitHub داخل مجلد store وسيقوم موقعك بقراءته وعرضه هنا فوراً وبسرعة صاروخية!");
+            return;
         }
 
         const reader = new FileReader();
         document.getElementById('progressWrapper').style.display = 'block';
-        document.getElementById('progressBar').style.width = '40%';
-        document.getElementById('progressText').innerText = 'تجهيز...';
+        document.getElementById('progressBar').style.width = '30%';
+        document.getElementById('progressText').innerText = 'جاري ضغط الملف وتحويله...';
+        document.getElementById('uploadBtn').disabled = true;
 
         reader.onload = async function() {
-            document.getElementById('progressBar').style.width = '70%';
+            document.getElementById('progressBar').style.width = '60%';
+            document.getElementById('progressText').innerText = 'جاري الإرسال لسيرفرات جيت هاب...';
+            
             const content = reader.result.split(',')[1];
             try {
                 const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${nameInput}`, {
-                    method: 'PUT', headers: { 'Authorization': `token ${token}` },
-                    body: JSON.stringify({ message: `Upload ${nameInput}`, content })
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `Upload App: ${nameInput}`, content: content })
                 });
+
                 if(res.ok) {
                     document.getElementById('progressBar').style.width = '100%';
-                    document.getElementById('progressText').innerText = 'تم الرفع!';
-                    showToast("تمت العملية بنجاح!");
-                    setTimeout(() => { document.getElementById('progressWrapper').style.display = 'none'; loadFiles(); }, 1500);
-                } else { throw new Error(); }
-            } catch(e) { showToast("فشل الرفع", "error"); document.getElementById('progressWrapper').style.display='none'; }
+                    document.getElementById('progressText').innerText = 'اكتمل الرفع بنجاح! 🎉';
+                    showToast("تم الرفع وإدراج التطبيق بالمتجر!");
+                    setTimeout(() => {
+                        document.getElementById('progressWrapper').style.display = 'none';
+                        document.getElementById('uploadBtn').disabled = false;
+                        document.getElementById('apkFile').value = '';
+                        document.getElementById('apkName').value = '';
+                        loadFiles();
+                    }, 1500);
+                } else {
+                    // مشخص الأخطاء الذكي يحلل الرد القادم من GitHub ويعطيك النتيجة
+                    const errorData = await res.json();
+                    if(res.status === 401) {
+                        showToast("خطأ 401: رمز الـ Token السري الذي أدخلته غير صحيح أو انتهت صلاحيته!", "error");
+                    } else if(res.status === 404) {
+                        showToast("خطأ 404: لم يتم العثور على المستودع. تأكد من أن اسم المستودع الحالي هو store بالضبط!", "error");
+                    } else {
+                        showToast("فشل الرفع: " + (errorData.message || "خطأ غير معروف"), "error");
+                    }
+                    resetUpload();
+                }
+            } catch(e) {
+                showToast("حدث خطأ في الاتصال بالسيرفر، تأكد من جودة الإنترنت.", "error");
+                resetUpload();
+            }
         };
         reader.readAsDataURL(file);
     }
 
-    window.onload = () => { checkAdmin(); loadFiles(); };
+    function resetUpload() {
+        document.getElementById('progressWrapper').style.display = 'none';
+        document.getElementById('uploadBtn').disabled = false;
+    }
+
+    window.onload = () => { loadFiles(); checkAdminLogin(); };
 </script>
 </body>
 </html>
