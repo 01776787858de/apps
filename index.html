@@ -121,7 +121,7 @@
 
 <script>
     const OWNER = "01776787858de";
-    const REPO = "apps"; // <--- قمت بتعديل اسم المستودع هنا ليطابق مستودعك
+    const REPO = "apps"; 
 
     let allApps = [];
 
@@ -283,13 +283,8 @@
         if(fileInput.files.length === 0 || !nameInput) return showToast("الرجاء اختيار ملف وتحديد اسم له!", "error");
 
         const file = fileInput.files[0];
-        
-        if(file.size > 25 * 1024 * 1024) {
-            alert("⚠️ تنبيه هام: حجم التطبيق أكبر من 25 ميجابايت. واجهة البرمجة (API) تمنع رفع الأحجام الكبيرة من هنا لتجنب تعليق المتصفح. ارفعه يدوياً مباشرة من موقع GitHub داخل مجلد apps وسيقوم موقعك بقراءته وعرضه هنا فوراً وبسرعة صاروخية!");
-            return;
-        }
-
         const reader = new FileReader();
+        
         document.getElementById('progressWrapper').style.display = 'block';
         document.getElementById('progressBar').style.width = '30%';
         document.getElementById('progressText').innerText = 'جاري ضغط الملف وتحويله...';
@@ -324,13 +319,15 @@
                         showToast("خطأ 401: رمز الـ Token السري الذي أدخلته غير صحيح أو انتهت صلاحيته!", "error");
                     } else if(res.status === 404) {
                         showToast("خطأ 404: لم يتم العثور على المستودع.", "error");
+                    } else if(res.status === 413 || errorData.message.includes('too large')) {
+                        showToast("خطأ: الملف يتجاوز الحد الأقصى المسموح به رسمياً من جيت هاب!", "error");
                     } else {
                         showToast("فشل الرفع: " + (errorData.message || "خطأ غير معروف"), "error");
                     }
                     resetUpload();
                 }
             } catch(e) {
-                showToast("حدث خطأ في الاتصال بالسيرفر، تأكد من جودة الإنترنت.", "error");
+                showToast("حدث خطأ في الاتصال بالسيرفر، تأكد من جودة الإنترنت وحجم الملف.", "error");
                 resetUpload();
             }
         };
