@@ -1,67 +1,168 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>لوحة الرفع</title>
+
+<title>لوحة رفع التطبيقات</title>
 
 <style>
-body{
+
+*{
+box-sizing:border-box;
 font-family:Arial;
-padding:20px;
-background:#f2f2f2;
 }
 
-.box{
-max-width:700px;
-margin:auto;
-background:#fff;
+body{
+margin:0;
+background:#0f172a;
+color:white;
 padding:20px;
+}
+
+.card{
+
+max-width:700px;
+
+margin:auto;
+
+background:#1e293b;
+
+padding:25px;
+
+border-radius:20px;
+
+box-shadow:0 0 30px rgba(0,0,0,.3);
+
+}
+
+h1{
+
+text-align:center;
+
+margin-bottom:25px;
+
+}
+
+input{
+
+width:100%;
+
+padding:14px;
+
+margin-top:10px;
+
+border:none;
+
 border-radius:10px;
+
+background:#334155;
+
+color:white;
+
 }
 
 button{
+
 width:100%;
-padding:12px;
-margin-top:10px;
+
+padding:14px;
+
+margin-top:15px;
+
+border:none;
+
+border-radius:10px;
+
+background:#2563eb;
+
+color:white;
+
+font-size:18px;
+
+cursor:pointer;
+
+}
+
+button:hover{
+
+opacity:.9;
+
 }
 
 .progress{
-height:28px;
-background:#ddd;
-margin-top:10px;
+
+margin-top:15px;
+
+height:30px;
+
+background:#334155;
+
+border-radius:10px;
+
+overflow:hidden;
+
 display:none;
+
 }
 
 .bar{
+
 height:100%;
-width:0%;
+
+width:0;
+
 background:#22c55e;
-color:white;
+
 text-align:center;
+
+line-height:30px;
+
 }
+
+.toast{
+
+margin-top:15px;
+
+padding:12px;
+
+border-radius:10px;
+
+display:none;
+
+}
+
+.success{
+
+background:#15803d;
+
+}
+
+.error{
+
+background:#b91c1c;
+
+}
+
 </style>
 
 </head>
 
 <body>
 
-<div class="box">
+<div class="card">
 
-<h2>رفع APK</h2>
+<h1>📦 لوحة رفع APK</h1>
 
-<input type="password"
+<input
+type="password"
 id="token"
 placeholder="GitHub Token">
-
-<br><br>
 
 <input
 type="file"
 id="apk"
 accept=".apk">
-
-<br><br>
 
 <input
 type="text"
@@ -70,7 +171,7 @@ placeholder="اسم الملف.apk">
 
 <button onclick="upload()">
 
-رفع
+🚀 رفع التطبيق
 
 </button>
 
@@ -88,18 +189,59 @@ id="bar">
 
 </div>
 
+<div
+class="toast"
+id="toast">
+
+</div>
+
 </div>
 
 <script>
 
 const REPO="01776787858de/apps";
 
+function toast(text,type){
+
+const t=document.getElementById("toast");
+
+t.className="toast "+type;
+
+t.innerHTML=text;
+
+t.style.display="block";
+
+setTimeout(()=>{
+
+t.style.display="none";
+
+},4000);
+
+}
+
+document
+.getElementById("apk")
+.addEventListener("change",e=>{
+
+if(e.target.files[0]){
+
+document
+.getElementById("name")
+.value=
+
+e.target.files[0].name;
+
+}
+
+});
+
 async function upload(){
 
 const token=
 document
 .getElementById("token")
-.value;
+.value
+.trim();
 
 const file=
 document
@@ -109,11 +251,26 @@ document
 const filename=
 document
 .getElementById("name")
-.value;
+.value
+.trim();
 
-if(!token||!file){
+if(!token){
 
-alert("أدخل الرمز واختر الملف");
+toast(
+"أدخل التوكن",
+"error"
+);
+
+return;
+
+}
+
+if(!file){
+
+toast(
+"اختر APK",
+"error"
+);
 
 return;
 
@@ -129,7 +286,9 @@ document
 
 progress.style.display="block";
 
-bar.style.width="10%";
+bar.style.width="20%";
+
+bar.innerHTML="قراءة...";
 
 const reader=
 new FileReader();
@@ -139,10 +298,14 @@ async e=>{
 
 bar.style.width="50%";
 
+bar.innerHTML="رفع...";
+
 const base64=
 e.target
 .result
 .split(",")[1];
+
+try{
 
 const res=
 await fetch(
@@ -167,7 +330,7 @@ body:
 JSON.stringify({
 
 message:
-"upload",
+`Upload ${filename}`,
 
 content:
 base64
@@ -182,13 +345,30 @@ if(res.ok){
 
 bar.style.width="100%";
 
-bar.innerText="تم";
+bar.innerHTML="تم";
 
-alert("نجح");
+toast(
+"تم الرفع 🎉",
+"success"
+);
 
 }else{
 
-alert("فشل");
+toast(
+"فشل الرفع أو الملف كبير",
+"error"
+);
+
+}
+
+}
+
+catch{
+
+toast(
+"خطأ اتصال",
+"error"
+);
 
 }
 
