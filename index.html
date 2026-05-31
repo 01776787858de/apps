@@ -19,8 +19,8 @@
         .btn-small { width: auto; padding: 8px 12px; font-size: 13px; flex: 1; min-width: 130px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         
         .btn-copy { background-color: #3b82f6; }
-        .btn-shorten { background-color: #8b5cf6; } /* زر التقصير التلقائي */
-        .btn-downloader { background-color: #f59e0b; color: #000; } /* زر AFTVnews */
+        .btn-shorten { background-color: #8b5cf6; } 
+        .btn-downloader { background-color: #f59e0b; color: #000; } 
         .btn-replace { background-color: #10b981; }
         .btn-delete { background-color: #ef4444; }
         
@@ -130,7 +130,7 @@
             container.innerHTML = "";
             apkFiles.forEach(file => {
                 const downloadUrl = `${GITHUB_PAGES_URL}/${file.path}`;
-                const btnShortId = `btn-short-${file.sha}`; // معرّف فريد للزر
+                const btnShortId = `btn-short-${file.sha}`;
 
                 container.innerHTML += `
                     <div class="file-item">
@@ -139,7 +139,7 @@
                         
                         <div class="buttons-grid">
                             <button class="btn-small btn-copy" onclick="copyLink('${file.sha}')">📋 نسخ الرابط</button>
-                            <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (is.gd)</button>
+                            <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (Tiny)</button>
                             <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')">📺 كود AFTVnews</button>
                             <button class="btn-small btn-replace" onclick="replaceFile('${file.name}', '${file.sha}')">🔄 استبدال</button>
                             <button class="btn-small btn-delete" onclick="deleteFile('${file.name}', '${file.sha}')">❌ حذف</button>
@@ -152,7 +152,6 @@
         }
     }
 
-    // نسخ الرابط العادي
     function copyLink(sha) {
         const link = document.getElementById(`link-${sha}`).innerText;
         navigator.clipboard.writeText(link).then(() => {
@@ -160,56 +159,47 @@
         }).catch(() => alert("فشل النسخ."));
     }
 
-    // الميزة الجديدة 1: توليد الرابط القصير جداً تلقائياً (تتجاوز الحماية برمجياً)
-    function generateShortLink(url, btnId) {
+    // تم تحديث السيرفر إلى TinyURL ليعمل بدون حظر
+    async function generateShortLink(url, btnId) {
         const btn = document.getElementById(btnId);
-        btn.innerHTML = "⏳ لحظة...";
+        btn.innerHTML = "⏳ جاري التقصير...";
         btn.disabled = true;
         
-        // إنشاء دالة رد نداء عشوائية لتجنب التداخل
-        const cbName = 'isgd_cb_' + Math.random().toString(36).substr(2, 9);
-        
-        window[cbName] = function(data) {
-            if(data.shorturl) {
-                // إزالة https:// ليكون سهل الكتابة في التلفاز
-                let cleanUrl = data.shorturl.replace(/^https?:\/\//, ''); 
-                btn.innerHTML = `✅ ${cleanUrl}`;
-                btn.style.backgroundColor = "#10b981"; // لون أخضر للنجاح
-                btn.disabled = false;
-                
-                // تغيير وظيفة الزر لنسخ الرابط القصير عند الضغط عليه مرة أخرى
-                btn.onclick = function() {
-                    navigator.clipboard.writeText(data.shorturl).then(() => {
-                        alert(`تم نسخ الرابط القصير: ${cleanUrl}\n\nيمكنك الآن كتابته مباشرة في مربع بحث تطبيق Downloader بالشاشة!`);
-                    });
-                };
-            } else {
-                btn.innerHTML = "❌ فشل";
-                btn.disabled = false;
-            }
-            delete window[cbName]; // تنظيف الذاكرة
-            const scriptEl = document.getElementById('script_' + cbName);
-            if(scriptEl) scriptEl.remove();
-        };
-        
-        // الاتصال بموقع is.gd عبر تقنية JSONP لكي نتجاوز حماية الـ CORS
-        const script = document.createElement('script');
-        script.id = 'script_' + cbName;
-        script.src = `https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}&callback=${cbName}`;
-        document.body.appendChild(script);
+        try {
+            const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
+            if (!response.ok) throw new Error("فشل الاتصال");
+            
+            const shortUrl = await response.text();
+            let cleanUrl = shortUrl.replace(/^https?:\/\//, ''); 
+            
+            btn.innerHTML = `✅ ${cleanUrl}`;
+            btn.style.backgroundColor = "#10b981"; // أخضر عند النجاح
+            btn.disabled = false;
+            
+            btn.onclick = function() {
+                navigator.clipboard.writeText(shortUrl).then(() => {
+                    alert(`تم نسخ الرابط القصير: ${cleanUrl}\n\nاكتبه في الشاشة الآن!`);
+                });
+            };
+        } catch (error) {
+            btn.innerHTML = "❌ فشل، حاول مجدداً";
+            btn.style.backgroundColor = "#ef4444"; // أحمر عند الخطأ
+            btn.disabled = false;
+        }
     }
 
-    // الميزة الجديدة 2: فتح موقع داونلودر مع نسخ الرابط (للحصول على الـ 5 أرقام)
+    // تم التحديث ليفتح الموقع فوراً لتجاوز حظر الـ Popup Blocker
     function openDownloaderSite(url) {
+        // نفتح النافذة أولاً قبل النسخ
+        window.open("https://create.aftvnews.com/", "_blank");
+        
         navigator.clipboard.writeText(url).then(() => {
-            alert("✅ تم نسخ رابط التطبيق!\n\nسيتم فتح موقع AFTVnews الآن، قم بلصق الرابط هناك لتحصل على الكود القصير (5 أرقام) للشاشات.");
-            window.open("https://create.aftvnews.com/", "_blank");
+            alert("✅ تم نسخ رابط التطبيق!\n\nانتقل الآن للنافذة الجديدة (موقع AFTVnews) والصق الرابط هناك.");
         }).catch(() => {
-            alert("انسخ الرابط يدوياً ثم افتح موقع create.aftvnews.com");
+            alert("⚠️ يرجى نسخ الرابط يدوياً ثم الصقه في موقع AFTVnews الذي فُتح الآن.");
         });
     }
 
-    // حذف تطبيق
     async function deleteFile(filename, sha) {
         if(!confirm(`هل أنت متأكد من حذف ${filename} نهائياً؟`)) return;
         const token = localStorage.getItem("github_token");
@@ -229,7 +219,6 @@
         } catch(e) { alert("خطأ: " + e.message); }
     }
 
-    // استبدال تطبيق
     function replaceFile(filename, sha) {
         const fileInput = document.getElementById('apkFile');
         if(!fileInput.files[0]) {
@@ -241,7 +230,6 @@
         }
     }
 
-    // الرفع
     function uploadFile() {
         const file = document.getElementById('apkFile').files[0];
         const filename = document.getElementById('appName').value.trim();
@@ -261,7 +249,7 @@
         uploadBtn.disabled = true;
         progressContainer.style.display = "block";
         progressBar.style.width = "5%";
-        progressBar.innerText = "جاري قراءة الملف...";
+        progressBar.innerText = "جاري القراءة...";
 
         const reader = new FileReader();
         reader.onload = function(e) {
