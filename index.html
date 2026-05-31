@@ -14,7 +14,6 @@
         button { background-color: #1a73e8; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 5px; transition: 0.2s; }
         button:hover { background-color: #1557b0; }
         
-        /* شبكة الأزرار الجديدة */
         .buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .btn-small { width: auto; padding: 8px 12px; font-size: 13px; flex: 1; min-width: 130px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         
@@ -30,11 +29,17 @@
         .file-name { font-weight: bold; font-size: 17px; color: #1e293b; margin-bottom: 8px; }
         .file-link { display: block; font-size: 13px; color: #64748b; background: #e2e8f0; padding: 8px; margin-bottom: 10px; direction: ltr; text-align: left; word-break: break-all; border-radius: 4px; }
         
-        /* شاشة التوكن */
         #tokenScreen { background: #fff3cd; padding: 20px; border-radius: 8px; border: 1px solid #ffeeba; margin-bottom: 20px; }
+
+        /* نظام الإشعارات الجديد والجميل */
+        #toast-container { position: fixed; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+        .toast { padding: 14px 24px; border-radius: 8px; font-weight: bold; color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.2); animation: slide 0.3s ease; }
+        @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body>
+
+<div id="toast-container"></div>
 
 <div class="container">
     <h1>لوحة إدارة تطبيقات المتجر 📱</h1>
@@ -84,16 +89,29 @@
         }
     };
 
+    // دالة الإشعارات الهادئة بديلة الـ Alert
+    function showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.backgroundColor = type === 'error' ? '#ef4444' : (type === 'warning' ? '#f59e0b' : '#10b981');
+        if(type === 'warning') toast.style.color = '#000';
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 4000);
+    }
+
     function saveToken() {
         const tokenVal = document.getElementById("ghTokenInput").value.trim();
         if (!tokenVal.startsWith("ghp_") && !tokenVal.startsWith("github_pat_")) {
-            alert("الرمز غير صحيح! يجب أن يبدأ بـ ghp_ أو github_pat_");
+            showToast("الرمز غير صحيح! يجب أن يبدأ بـ ghp_ أو github_pat_", "error");
             return;
         }
         localStorage.setItem("github_token", tokenVal);
         document.getElementById("tokenScreen").style.display = "none";
         document.getElementById("mainDashboard").style.display = "block";
         fetchFiles();
+        showToast("تم الدخول بنجاح!", "success");
     }
 
     function logout() {
@@ -155,11 +173,10 @@
     function copyLink(sha) {
         const link = document.getElementById(`link-${sha}`).innerText;
         navigator.clipboard.writeText(link).then(() => {
-            alert("تم نسخ الرابط بنجاح! ✅");
-        }).catch(() => alert("فشل النسخ."));
+            showToast("تم نسخ الرابط بنجاح! ✅", "success");
+        }).catch(() => showToast("فشل النسخ.", "error"));
     }
 
-    // تم تحديث السيرفر إلى TinyURL ليعمل بدون حظر
     async function generateShortLink(url, btnId) {
         const btn = document.getElementById(btnId);
         btn.innerHTML = "⏳ جاري التقصير...";
@@ -173,30 +190,27 @@
             let cleanUrl = shortUrl.replace(/^https?:\/\//, ''); 
             
             btn.innerHTML = `✅ ${cleanUrl}`;
-            btn.style.backgroundColor = "#10b981"; // أخضر عند النجاح
+            btn.style.backgroundColor = "#10b981"; 
             btn.disabled = false;
             
             btn.onclick = function() {
                 navigator.clipboard.writeText(shortUrl).then(() => {
-                    alert(`تم نسخ الرابط القصير: ${cleanUrl}\n\nاكتبه في الشاشة الآن!`);
+                    showToast(`تم نسخ الرابط: ${cleanUrl}`, "success");
                 });
             };
         } catch (error) {
             btn.innerHTML = "❌ فشل، حاول مجدداً";
-            btn.style.backgroundColor = "#ef4444"; // أحمر عند الخطأ
+            btn.style.backgroundColor = "#ef4444"; 
             btn.disabled = false;
         }
     }
 
-    // تم التحديث ليفتح الموقع فوراً لتجاوز حظر الـ Popup Blocker
     function openDownloaderSite(url) {
-        // نفتح النافذة أولاً قبل النسخ
         window.open("https://create.aftvnews.com/", "_blank");
-        
         navigator.clipboard.writeText(url).then(() => {
-            alert("✅ تم نسخ رابط التطبيق!\n\nانتقل الآن للنافذة الجديدة (موقع AFTVnews) والصق الرابط هناك.");
+            showToast("تم نسخ الرابط! الصقه في موقع AFTVnews.", "success");
         }).catch(() => {
-            alert("⚠️ يرجى نسخ الرابط يدوياً ثم الصقه في موقع AFTVnews الذي فُتح الآن.");
+            showToast("يرجى نسخ الرابط يدوياً", "warning");
         });
     }
 
@@ -211,21 +225,22 @@
                 body: JSON.stringify({ message: `Delete ${filename}`, sha: sha })
             });
             if(res.ok) {
-                alert("تم الحذف بنجاح! 🗑️");
+                showToast("تم الحذف بنجاح! 🗑️", "success");
                 fetchFiles();
             } else {
-                alert("فشل الحذف!");
+                showToast("فشل الحذف!", "error");
             }
-        } catch(e) { alert("خطأ: " + e.message); }
+        } catch(e) { showToast("خطأ: " + e.message, "error"); }
     }
 
     function replaceFile(filename, sha) {
         const fileInput = document.getElementById('apkFile');
         if(!fileInput.files[0]) {
-            alert("⚠️ اختر الملف الجديد أولاً من الأعلى، ثم اضغط على زر الاستبدال هنا.");
+            // هنا تظهر الرسالة الهادئة بدلاً من التنبيه المزعج
+            showToast("⚠️ الرجاء اختيار ملف التطبيق الجديد من الأعلى أولاً!", "warning");
             return;
         }
-        if(confirm(`هل تريد استبدال ${filename} بالملف الجديد المختار؟`)) {
+        if(confirm(`هل تريد استبدال ${filename} بالملف الجديد؟`)) {
             processUpload(fileInput.files[0], filename, sha);
         }
     }
@@ -234,8 +249,14 @@
         const file = document.getElementById('apkFile').files[0];
         const filename = document.getElementById('appName').value.trim();
         
-        if (!file) return alert("اختر ملف APK أولاً");
-        if (!filename.endsWith('.apk')) return alert("يجب أن ينتهي الاسم بـ .apk");
+        if (!file) {
+            showToast("⚠️ الرجاء اختيار ملف APK من جهازك أولاً!", "warning");
+            return;
+        }
+        if (!filename.endsWith('.apk')) {
+            showToast("يجب أن ينتهي اسم الملف بـ .apk", "error");
+            return;
+        }
         
         processUpload(file, filename, null);
     }
@@ -249,7 +270,7 @@
         uploadBtn.disabled = true;
         progressContainer.style.display = "block";
         progressBar.style.width = "5%";
-        progressBar.innerText = "جاري القراءة...";
+        progressBar.innerText = "جاري قراءة الملف...";
 
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -275,20 +296,20 @@
                 uploadBtn.disabled = false;
                 progressContainer.style.display = "none";
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    alert("تم الرفع بنجاح للوحة! 🎉");
+                    showToast("تم الرفع بنجاح للوحة! 🎉", "success");
                     document.getElementById('apkFile').value = "";
                     document.getElementById('appName').value = "";
                     fetchFiles();
                 } else {
                     const err = JSON.parse(xhr.responseText);
-                    alert("خطأ أثناء الرفع: " + err.message);
+                    showToast("خطأ أثناء الرفع: (قد يكون الملف كبيراً جداً)", "error");
                 }
             };
 
             xhr.onerror = function() {
                 uploadBtn.disabled = false;
                 progressContainer.style.display = "none";
-                alert("حدث خطأ في الاتصال بالإنترنت.");
+                showToast("حدث خطأ في الاتصال بالإنترنت.", "error");
             };
 
             xhr.send(JSON.stringify(bodyData));
