@@ -167,7 +167,7 @@
                             <button class="btn-small btn-copy" onclick="copyLink('${file.sha}')">📋 نسخ الرابط</button>
                             <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (Tiny)</button>
                             <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')">📺 كود AFTVnews</button>
-                            <button class="btn-small" style="background:#7c3aed" onclick="createOneTimeLink('${downloadUrl}', '${file.name}', '${file.sha}')">🔒 إنشاء ونسخ رابط لمرة واحدة</button>
+                            <button class="btn-small" style="background:#7c3aed" id="btn-onetime-${file.sha}" onclick="createOneTimeLink('${downloadUrl}', '${file.name}', '${file.sha}')">🔒 إنشاء ونسخ رابط لمرة واحدة</button>
                             <button class="btn-small btn-replace" onclick="replaceFile('${file.name}', '${file.sha}')">🔄 استبدال</button>
                             <button class="btn-small btn-delete" onclick="deleteFile('${file.name}', '${file.sha}')">❌ حذف</button>
                         </div>
@@ -328,11 +328,11 @@
         reader.readAsDataURL(file);
     }
     async function createOneTimeLink(apkUrl, appName, fileSha) {
-        const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\\/$/, "");
+        const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\/$/, "");
         const anonKey = document.getElementById("sbAnon").value.trim();
         const adminKey = document.getElementById("sbAdmin").value.trim();
         const resultBox = document.getElementById("one-time-" + fileSha);
-        const button = Array.from(document.querySelectorAll(".buttons-grid button")).find(b => b.getAttribute("onclick") && b.getAttribute("onclick").includes(fileSha));
+        const button = document.getElementById("btn-onetime-" + fileSha);
         if (!projectUrl || !anonKey || !adminKey) { showToast("أدخل مفتاح الإدارة في إعدادات روابط الزبائن بالأعلى أولاً.", "warning"); return; }
         if (button) { button.disabled = true; button.textContent = "⏳ جاري إنشاء الرابط..."; }
         try {
