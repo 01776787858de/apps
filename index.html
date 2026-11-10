@@ -166,7 +166,8 @@
                         <div class="buttons-grid">
                             <button class="btn-small btn-copy" onclick="copyLink('${file.sha}')">📋 نسخ الرابط</button>
                             <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (Tiny)</button>
-                            <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')"><button class="btn-small" style="background:#7c3aed" onclick="createOneTimeLink('${downloadUrl}', '${file.name}')">🔐 رابط زبون لمرة واحدة</button>📺 كود AFTVnews</button>
+                            <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')">📺 كود AFTVnews</button>
+                            <button class="btn-small" style="background:#7c3aed" onclick="createOneTimeLink('${downloadUrl}', '${file.name}')">🔐 رابط زبون لمرة واحدة</button>
                             <button class="btn-small btn-replace" onclick="replaceFile('${file.name}', '${file.sha}')">🔄 استبدال</button>
                             <button class="btn-small btn-delete" onclick="deleteFile('${file.name}', '${file.sha}')">❌ حذف</button>
                         </div>
