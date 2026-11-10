@@ -93,13 +93,20 @@
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let adminSession = null;
-    window.onload = async function() {
-        try {
-            const result = await supabaseClient.auth.getSession();
-            adminSession = result.data.session;
-        } catch (e) { console.error(e); }
+    window.onload = function() {
         updateAuthUI();
         fetchFiles();
+        Promise.race([
+            supabaseClient.auth.getSession(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("انتهت مهلة الاتصال بتسجيل الدخول")), 8000))
+        ]).then(result => {
+            adminSession = result.data.session;
+            updateAuthUI();
+        }).catch(error => {
+            console.warn("Auth session unavailable:", error);
+            const status = document.getElementById("authStatus");
+            if (status) status.textContent = "تعذر التحقق من جلسة الدخول حالياً. يمكنك المحاولة لاحقاً.";
+        });
     };
     function updateAuthUI() {
         const owner = !!adminSession && (adminSession.user.email || "").toLowerCase() === "01776787858de@gmail.com";
@@ -134,26 +141,61 @@
         finally{btn.disabled=false;btn.textContent="رفع التطبيق إلى السيرفر 🚀";}
     }
     async function fetchFiles() {
-        const container=document.getElementById("filesContainer");container.innerHTML="⏳ جاري جلب التطبيقات...";
-        try{
-            const items=[];
-            const gh=await fetch("https://api.github.com/repos/"+REPO+"/contents/",{headers:{"Accept":"application/vnd.github+json"},cache:"no-store"});
-            if(gh.ok){const files=await gh.json();files.filter(x=>x.name.toLowerCase().endsWith(".apk")).forEach(x=>items.push({name:x.name,url:GITHUB_PAGES_URL+"/"+x.path,id:"gh-"+x.sha}));}
-            const stored=await supabaseClient.storage.from("apk-files").list("",{limit:200,sortBy:{column:"created_at",order:"desc"}});
-            if(stored.error)throw stored.error;
-            (stored.data||[]).filter(x=>x.name.toLowerCase().endsWith(".apk")).forEach(x=>{
-                const p=supabaseClient.storage.from("apk-files").getPublicUrl(x.name);
-                items.push({name:x.name.replace(/^\\d+-/,""),url:p.data.publicUrl,id:"st-"+x.name.replace(/[^a-zA-Z0-9_-]/g,"_")});
+        const container = document.getElementById("filesContainer");
+        container.textContent = "⏳ جاري جلب التطبيقات...";
+        const items = [];
+        const errors = [];
+
+        try {
+            const gh = await Promise.race([
+                fetch("https://api.github.com/repos/" + REPO + "/contents/", {
+                    headers: { "Accept": "application/vnd.github+json" }, cache: "no-store"
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("انتهت مهلة GitHub")), 8000))
+            ]);
+            if (gh.ok) {
+                const files = await gh.json();
+                files.filter(x => x.name && x.name.toLowerCase().endsWith(".apk"))
+                    .forEach(x => items.push({ name:x.name, url:GITHUB_PAGES_URL+"/"+x.path, id:"gh-"+x.sha }));
+            } else errors.push("GitHub: HTTP " + gh.status);
+        } catch(e) { errors.push(e.message || "تعذر الاتصال بـ GitHub"); }
+
+        try {
+            const stored = await Promise.race([
+                supabaseClient.storage.from("apk-files").list("", { limit:200, sortBy:{column:"created_at",order:"desc"} }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("انتهت مهلة Supabase Storage")), 12000))
+            ]);
+            if (stored.error) throw stored.error;
+            (stored.data || []).filter(x => x.name && x.name.toLowerCase().endsWith(".apk")).forEach(x => {
+                const pub = supabaseClient.storage.from("apk-files").getPublicUrl(x.name);
+                items.push({ name:x.name.replace(/^\\d+-/, ""), url:pub.data.publicUrl, id:"st-"+x.name.replace(/[^a-zA-Z0-9_-]/g,"_") });
             });
-            if(!items.length){container.innerHTML="<p>لا توجد تطبيقات حالياً.</p>";return;}
-            container.innerHTML="";
-            items.forEach(file=>{
-                const id=file.id;
-                const card=document.createElement("div");card.className="file-item";
-                card.innerHTML='<div class="file-name">🤖 '+file.name+'</div><div class="file-link" id="link-'+id+'"></div><div class="buttons-grid"><button class="btn-small btn-copy" onclick="copyLink(\''+id+'\')">📋 نسخ الرابط</button><button class="btn-small btn-shorten" id="btn-short-'+id+'" onclick="generateShortLink(document.getElementById(\'link-'+id+'\').innerText,\'btn-short-'+id+'\')">⚡ تقصير تلقائي (Tiny)</button><button class="btn-small btn-downloader" onclick="openDownloaderSite(document.getElementById(\'link-'+id+'\').innerText)">📺 كود AFTVnews</button><button class="btn-small" style="background:#7c3aed" id="btn-onetime-'+id+'" onclick="createOneTimeLink(document.getElementById(\'link-'+id+'\').innerText,\''+file.name.replace(/'/g,"")+'\',\''+id+'\')">🔒 إنشاء ونسخ رابط لمرة واحدة</button></div><div id="one-time-'+id+'" class="file-link" style="display:none;margin-top:10px;background:#ecfdf5;color:#065f46"></div>';
-                card.querySelector("#link-"+id).textContent=file.url;container.appendChild(card);
-            });
-        }catch(e){container.innerHTML='<p style="color:red;">خطأ: '+e.message+'</p>';}
+        } catch(e) { errors.push("Supabase: " + (e.message || "تعذر جلب الملفات")); }
+
+        if (!items.length) {
+            container.innerHTML = "<p>لم نتمكن من جلب التطبيقات.</p><p style='color:#b45309;font-size:14px'>" + errors.join(" — ") + "</p><button onclick='fetchFiles()'>إعادة المحاولة 🔄</button>";
+            return;
+        }
+
+        container.innerHTML = "";
+        items.forEach(file => {
+            const id = file.id;
+            const card = document.createElement("div");
+            card.className = "file-item";
+            const name = document.createElement("div"); name.className = "file-name"; name.textContent = "🤖 " + file.name;
+            const link = document.createElement("div"); link.className = "file-link"; link.id = "link-" + id; link.textContent = file.url;
+            const buttons = document.createElement("div"); buttons.className = "buttons-grid";
+            buttons.innerHTML =
+                '<button class="btn-small btn-copy" onclick="copyLink(\''+id+'\')">📋 نسخ الرابط</button>' +
+                '<button class="btn-small btn-shorten" id="btn-short-'+id+'" onclick="generateShortLink(document.getElementById(\'link-'+id+'\').innerText,\'btn-short-'+id+'\')">⚡ تقصير تلقائي (Tiny)</button>' +
+                '<button class="btn-small btn-downloader" onclick="openDownloaderSite(document.getElementById(\'link-'+id+'\').innerText)">📺 كود AFTVnews</button>' +
+                '<button class="btn-small" style="background:#7c3aed" id="btn-onetime-'+id+'" onclick="createOneTimeLink(document.getElementById(\'link-'+id+'\').innerText,\''+file.name.replace(/'/g,"")+'\',\''+id+'\')">🔒 إنشاء ونسخ رابط لمرة واحدة</button>';
+            const result = document.createElement("div"); result.id = "one-time-" + id; result.className = "file-link"; result.style.display = "none";
+            card.append(name, link, buttons, result); container.appendChild(card);
+        });
+        if (errors.length) {
+            const note = document.createElement("p"); note.style.color = "#b45309"; note.textContent = "تنبيه: " + errors.join(" — "); container.appendChild(note);
+        }
     }
 
     function copyLink(sha) {
