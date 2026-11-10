@@ -46,7 +46,7 @@
 
     <div id="tokenScreen">
         <h3 style="margin-top:0;">إعداد الأمان 🔒</h3>
-        <p>يرجى وضع GitHub Token الخاص بك هنا. (يُحفظ في جهازك فقط).</p>
+        <p>عرض التطبيقات لا يحتاج رمزاً. أدخل GitHub Token صالحاً فقط عند الرفع أو الاستبدال أو الحذف. يُحفظ على جهازك فقط.</p>
         <div class="form-group">
             <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxx...">
         </div>
@@ -90,12 +90,10 @@
     const GITHUB_PAGES_URL = "https://01776787858de.github.io/apps";
     
     window.onload = function() {
-        const token = localStorage.getItem("github_token");
-        if (token) {
-            document.getElementById("tokenScreen").style.display = "none";
-            document.getElementById("mainDashboard").style.display = "block";
-            fetchFiles();
-        }
+        // Public APK listing works without a GitHub token. A token is only needed for writes.
+        document.getElementById("tokenScreen").style.display = "block";
+        document.getElementById("mainDashboard").style.display = "block";
+        fetchFiles();
     };
 
     function showToast(msg, type = 'success') {
@@ -116,15 +114,16 @@
             return;
         }
         localStorage.setItem("github_token", tokenVal);
-        document.getElementById("tokenScreen").style.display = "none";
+        document.getElementById("ghTokenInput").value = "";
         document.getElementById("mainDashboard").style.display = "block";
-        fetchFiles();
-        showToast("تم الدخول بنجاح!", "success");
+        showToast("تم حفظ GitHub Token على هذا الجهاز. ✅", "success");
     }
 
     function logout() {
         localStorage.removeItem("github_token");
-        location.reload();
+        document.getElementById("ghTokenInput").value = "";
+        showToast("تم مسح GitHub Token. ستبقى التطبيقات ظاهرة، لكن الرفع والتعديل والحذف تحتاج رمزاً صالحاً.", "warning");
+        fetchFiles();
     }
 
     document.getElementById('apkFile').addEventListener('change', function(e) {
@@ -139,8 +138,10 @@
         const token = localStorage.getItem("github_token");
         const container = document.getElementById('filesContainer');
         try {
+            // This repository is public, so list APKs anonymously. Do not let an expired
+            // personal token hide the existing applications from the dashboard.
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/`, {
-                headers: { "Authorization": `token ${token}` },
+                headers: { "Accept": "application/vnd.github+json" },
                 cache: "no-store"
             });
             const data = await res.json();
