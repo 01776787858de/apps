@@ -69,14 +69,6 @@
             <div class="progress-bar" id="progressBar">0%</div>
         </div>
 
-        <div class="file-item" style="border:2px solid #8b5cf6;margin-top:22px;">
-            <h2>🔐 إعدادات روابط الزبائن لمرة واحدة</h2>
-            <p>تم ربط Supabase تلقائياً. يستخدم إنشاء روابط الزبائن رمز GitHub المسجل في اللوحة، ولا تحتاج إلى مفتاح إدارة إضافي.</p>
-            <div class="form-group"><label>Supabase Project URL</label><input id="sbUrl" type="text" value="https://hauuwbwrgmaaovnmcoug.supabase.co"></div>
-            <div class="form-group"><label>Supabase anon/public key</label><input id="sbAnon" type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8"></div>
-            <p style="font-size:13px;color:#64748b">بعد إنشاء الرابط، سجّله في AFTVnews لتحصل على كود Downloader الرسمي. الأكواد الرسمية يصدرها AFTVnews.</p>
-            <div id="oneTimeResult" style="display:none;background:#f1f5f9;padding:12px;border-radius:8px;word-break:break-all"></div>
-        </div>
         <div style="margin-top: 40px;">
             <h2>📦 التطبيقات المرفوعة</h2>
             <div id="filesContainer">⏳ جاري جلب التطبيقات...</div>
@@ -87,6 +79,9 @@
 <script>
     const REPO = "01776787858de/apps";
     const GITHUB_PAGES_URL = "https://01776787858de.github.io/apps";
+    // Public Supabase client settings are kept in code, not shown as editable dashboard fields.
+    const SUPABASE_URL = "https://hauuwbwrgmaaovnmcoug.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8";
     
     window.onload = function() {
         // Public APK listing works without a GitHub token.
@@ -346,8 +341,8 @@
         reader.readAsDataURL(file);
     }
     async function createOneTimeLink(apkUrl, appName, fileSha) {
-        const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\/$/, "");
-        const anonKey = document.getElementById("sbAnon").value.trim();
+        const projectUrl = SUPABASE_URL;
+        const anonKey = SUPABASE_ANON_KEY;
         const githubToken = localStorage.getItem("github_token") || "";
         const resultBox = document.getElementById("one-time-" + fileSha);
         const button = document.getElementById("btn-onetime-" + fileSha);
