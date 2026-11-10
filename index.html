@@ -43,8 +43,23 @@
 <div class="container">
     <h1>لوحة إدارة تطبيقات المتجر 📱</h1>
 
+    <div id="authPanel" class="file-item">
+        <h2>🔐 دخول صاحب اللوحة</h2>
+        <p>سجّل الدخول بالبريد المخصص للمالك لعرض أدوات الرفع.</p>
+        <div class="form-group"><input id="adminEmail" type="email" value="01776787858de@gmail.com" readonly></div>
+        <div class="form-group"><input id="adminPassword" type="password" placeholder="كلمة المرور" autocomplete="current-password"></div>
+        <button onclick="signInAdmin()">تسجيل الدخول</button>
+        <button onclick="signUpAdmin()" style="background:#0f9d58">إنشاء الحساب لأول مرة</button>
+        <p id="authStatus"></p>
+    </div>
+    <div id="uploadPanel" class="file-item" style="display:none">
+        <h2>📤 رفع تطبيق جديد</h2>
+        <div class="form-group"><input type="file" id="apkFile" accept=".apk,application/vnd.android.package-archive"></div>
+        <button id="uploadBtn" onclick="uploadApk()">رفع التطبيق إلى السيرفر 🚀</button>
+        <button onclick="signOutAdmin()" style="background:#64748b">تسجيل الخروج</button>
+    </div>
     <div id="mainDashboard">
-        <p>هذه لوحة عرض التطبيقات وإنشاء روابط تنزيل لمرة واحدة. إدارة الرفع والحذف غير متاحة من هذه النسخة.</p>
+        <p>عرض التطبيقات وإنشاء روابط تنزيل لمرة واحدة. رفع التطبيقات متاح بعد تسجيل دخول المالك.</p>
 
         <div class="progress-container" id="progressContainer">
             <div class="progress-bar" id="progressBar">0%</div>
@@ -64,7 +79,6 @@
     const SUPABASE_URL = "https://hauuwbwrgmaaovnmcoug.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8";
     
-    window.onload = function() { fetchFiles(); };
 
     function showToast(msg, type = 'success') {
         const container = document.getElementById('toast-container');
@@ -80,8 +94,10 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let adminSession = null;
     window.onload = async function() {
-        const result = await supabaseClient.auth.getSession();
-        adminSession = result.data.session;
+        try {
+            const result = await supabaseClient.auth.getSession();
+            adminSession = result.data.session;
+        } catch (e) { console.error(e); }
         updateAuthUI();
         fetchFiles();
     };
