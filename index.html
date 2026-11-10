@@ -107,7 +107,7 @@
         if(!adminSession || (adminSession.user.email||"").toLowerCase()!=="01776787858de@gmail.com"){showToast("سجّل الدخول أولاً.","warning");return;}
         const file=document.getElementById("apkFile").files[0];
         if(!file || !file.name.toLowerCase().endsWith(".apk")){showToast("اختر ملف APK صالحاً.","warning");return;}
-        if(file.size>100*1024*1024){showToast("الحد الأقصى 100 ميغابايت.","warning");return;}
+        if(file.size>500*1024*1024){showToast("الحد الأقصى 500 ميغابايت.","warning");return;}
         const path=Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"-");
         const btn=document.getElementById("uploadBtn");btn.disabled=true;btn.textContent="جاري الرفع...";
         try{
