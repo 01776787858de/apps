@@ -7,29 +7,29 @@
 body{font-family:Arial,sans-serif;background:#f1f5f9;margin:0;min-height:100vh;display:grid;place-items:center;color:#172033}
 main{background:white;padding:28px;border-radius:16px;max-width:440px;margin:20px;box-shadow:0 8px 30px #0001;text-align:center}
 h2{color:#1d4ed8}p{line-height:1.8}#status{padding:12px;background:#eff6ff;border-radius:8px}
+button{border:0;border-radius:9px;padding:13px 22px;background:#2563eb;color:white;font-size:17px;cursor:pointer}
 </style>
 </head>
-<body><main><h2>📦 تنزيل التطبيق</h2><p id="status">جارٍ التحقق من صلاحية الرابط...</p></main>
+<body><main><h2>📦 تنزيل التطبيق</h2><p>هذا رابط مخصص لمرة واحدة. اضغط الزر لبدء التحقق والتنزيل.</p><p id="status">الرابط جاهز للتحقق.</p><button id="downloadBtn">ابدأ التنزيل</button></main>
 <script>
 const SUPABASE_URL = "https://hauuwbwrgmaaovnmcoug.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8";
-(async function(){
-  const status = document.getElementById("status");
-  const code = new URLSearchParams(location.search).get("code");
-  if (!code) { status.textContent = "الرابط غير مكتمل."; return; }
-  if (SUPABASE_URL.includes("ضع-") || SUPABASE_ANON_KEY.includes("ضع-")) {
-    status.textContent = "لم يتم إعداد خدمة التحقق بعد."; return;
-  }
-  try {
-    const response = await fetch(SUPABASE_URL.replace(/\/$/,"") + "/functions/v1/redeem-download-link", {
+const button=document.getElementById("downloadBtn");
+const status=document.getElementById("status");
+button.addEventListener("click",async()=>{
+  const code=new URLSearchParams(location.search).get("code");
+  if(!code){status.textContent="الرابط غير مكتمل.";button.disabled=true;return;}
+  button.disabled=true;status.textContent="جارٍ التحقق من صلاحية الرابط...";
+  try{
+    const response=await fetch(SUPABASE_URL+"/functions/v1/redeem-download-link",{
       method:"POST",
       headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+SUPABASE_ANON_KEY},
       body:JSON.stringify({code})
     });
-    const data = await response.json();
-    if (!response.ok) { status.textContent = data.error || "هذا الرابط مستخدم أو غير صالح."; return; }
-    status.textContent = "تم التحقق. جارٍ تحويلك إلى تنزيل " + (data.appName || "التطبيق") + "...";
-    location.replace(data.apkUrl);
-  } catch (_) { status.textContent = "تعذر الاتصال بخدمة التحقق. حاول لاحقاً."; }
-})();
+    const data=await response.json();
+    if(!response.ok){status.textContent=data.error||"هذا الرابط مستخدم أو غير صالح.";return;}
+    status.textContent="تم التحقق. جارٍ تحويلك إلى تنزيل "+(data.appName||"التطبيق")+"...";
+    location.href=data.apkUrl;
+  }catch(_){status.textContent="تعذر الاتصال بخدمة التحقق. حدّث الصفحة وحاول مرة أخرى.";}
+});
 </script></body></html>
