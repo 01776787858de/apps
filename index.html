@@ -69,6 +69,15 @@
             <div class="progress-bar" id="progressBar">0%</div>
         </div>
 
+        <div class="file-item" style="border:2px solid #8b5cf6;margin-top:22px;">
+            <h2>🔐 إعدادات روابط الزبائن لمرة واحدة</h2>
+            <p>أدخل إعدادات Supabase، ثم استخدم زر الرابط الخاص بجانب التطبيق.</p>
+            <div class="form-group"><label>Supabase Project URL</label><input id="sbUrl" type="text" placeholder="https://xxxx.supabase.co"></div>
+            <div class="form-group"><label>Supabase anon/public key</label><input id="sbAnon" type="text" placeholder="eyJ..."></div>
+            <div class="form-group"><label>مفتاح الإدارة الذي تضبطه في Supabase</label><input id="sbAdmin" type="password" placeholder="مفتاح الإدارة"></div>
+            <p style="font-size:13px;color:#64748b">بعد إنشاء الرابط، سجّله في AFTVnews لتحصل على كود Downloader الرسمي. الأكواد الرسمية يصدرها AFTVnews.</p>
+            <div id="oneTimeResult" style="display:none;background:#f1f5f9;padding:12px;border-radius:8px;word-break:break-all"></div>
+        </div>
         <div style="margin-top: 40px;">
             <h2>📦 التطبيقات المرفوعة</h2>
             <div id="filesContainer">⏳ جاري جلب التطبيقات...</div>
@@ -157,7 +166,7 @@
                         <div class="buttons-grid">
                             <button class="btn-small btn-copy" onclick="copyLink('${file.sha}')">📋 نسخ الرابط</button>
                             <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (Tiny)</button>
-                            <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')">📺 كود AFTVnews</button>
+                            <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')"><button class="btn-small" style="background:#7c3aed" onclick="createOneTimeLink('${downloadUrl}', '${file.name}')">🔐 رابط زبون لمرة واحدة</button>📺 كود AFTVnews</button>
                             <button class="btn-small btn-replace" onclick="replaceFile('${file.name}', '${file.sha}')">🔄 استبدال</button>
                             <button class="btn-small btn-delete" onclick="deleteFile('${file.name}', '${file.sha}')">❌ حذف</button>
                         </div>
@@ -315,6 +324,27 @@
         };
         
         reader.readAsDataURL(file);
+    }
+    async function createOneTimeLink(apkUrl, appName) {
+        const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\/$/, "");
+        const anonKey = document.getElementById("sbAnon").value.trim();
+        const adminKey = document.getElementById("sbAdmin").value.trim();
+        const resultBox = document.getElementById("oneTimeResult");
+        if (!projectUrl || !anonKey || !adminKey) { showToast("أدخل إعدادات Supabase الثلاثة أولاً.", "warning"); return; }
+        try {
+            const response = await fetch(projectUrl + "/functions/v1/create-download-link", {
+                method: "POST", headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": "Bearer " + anonKey },
+                body: JSON.stringify({ adminKey: adminKey, apkUrl: apkUrl, appName: appName })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "تعذر إنشاء الرابط");
+            resultBox.style.display = "block"; resultBox.textContent = "رابط الاستخدام الواحد: " + data.downloadUrl;
+            const copy = document.createElement("button"); copy.className = "btn-small"; copy.textContent = "📋 نسخ الرابط";
+            copy.onclick = () => navigator.clipboard.writeText(data.downloadUrl).then(() => showToast("تم نسخ الرابط"));
+            const aftv = document.createElement("button"); aftv.className = "btn-small btn-downloader"; aftv.textContent = "فتح AFTVnews لإنشاء كود";
+            aftv.onclick = () => window.open("https://go.aftvnews.com/", "_blank"); resultBox.append(document.createElement("br"), copy, aftv);
+            showToast("تم إنشاء الرابط. سجّله في AFTVnews للحصول على كود Downloader.", "success");
+        } catch (error) { showToast("خطأ: " + error.message, "error"); }
     }
 </script>
 
