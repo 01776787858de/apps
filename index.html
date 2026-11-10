@@ -71,10 +71,9 @@
 
         <div class="file-item" style="border:2px solid #8b5cf6;margin-top:22px;">
             <h2>🔐 إعدادات روابط الزبائن لمرة واحدة</h2>
-            <p>تم ربط Supabase تلقائياً. أدخل مفتاح الإدارة الذي ستحصل عليه من ChatGPT، ثم استخدم زر الرابط بجانب التطبيق.</p>
+            <p>تم ربط Supabase تلقائياً. يستخدم إنشاء روابط الزبائن رمز GitHub المسجل في اللوحة، ولا تحتاج إلى مفتاح إدارة إضافي.</p>
             <div class="form-group"><label>Supabase Project URL</label><input id="sbUrl" type="text" value="https://hauuwbwrgmaaovnmcoug.supabase.co"></div>
             <div class="form-group"><label>Supabase anon/public key</label><input id="sbAnon" type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8"></div>
-            <div class="form-group"><label>مفتاح الإدارة الخاص باللوحة</label><input id="sbAdmin" type="password" placeholder="مفتاح الإدارة"></div>
             <p style="font-size:13px;color:#64748b">بعد إنشاء الرابط، سجّله في AFTVnews لتحصل على كود Downloader الرسمي. الأكواد الرسمية يصدرها AFTVnews.</p>
             <div id="oneTimeResult" style="display:none;background:#f1f5f9;padding:12px;border-radius:8px;word-break:break-all"></div>
         </div>
@@ -331,15 +330,16 @@
     async function createOneTimeLink(apkUrl, appName, fileSha) {
         const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\/$/, "");
         const anonKey = document.getElementById("sbAnon").value.trim();
-        const adminKey = document.getElementById("sbAdmin").value.trim();
+        const githubToken = localStorage.getItem("github_token") || "";
         const resultBox = document.getElementById("one-time-" + fileSha);
         const button = document.getElementById("btn-onetime-" + fileSha);
-        if (!projectUrl || !anonKey || !adminKey) { showToast("أدخل مفتاح الإدارة في إعدادات روابط الزبائن بالأعلى أولاً.", "warning"); return; }
+        if (!projectUrl || !anonKey) { showToast("إعدادات Supabase غير مكتملة.", "warning"); return; }
+        if (!githubToken) { showToast("سجّل دخول GitHub من أعلى اللوحة أولاً.", "warning"); return; }
         if (button) { button.disabled = true; button.textContent = "⏳ جاري إنشاء الرابط..."; }
         try {
             const response = await fetch(projectUrl + "/functions/v1/create-download-link", {
                 method: "POST", headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": "Bearer " + anonKey },
-                body: JSON.stringify({ adminKey, apkUrl, appName })
+                body: JSON.stringify({ githubToken, apkUrl, appName })
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "تعذر إنشاء الرابط");
