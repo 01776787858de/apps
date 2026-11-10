@@ -167,10 +167,11 @@
                             <button class="btn-small btn-copy" onclick="copyLink('${file.sha}')">📋 نسخ الرابط</button>
                             <button class="btn-small btn-shorten" id="${btnShortId}" onclick="generateShortLink('${downloadUrl}', '${btnShortId}')">⚡ تقصير تلقائي (Tiny)</button>
                             <button class="btn-small btn-downloader" onclick="openDownloaderSite('${downloadUrl}')">📺 كود AFTVnews</button>
-                            <button class="btn-small" style="background:#7c3aed" onclick="createOneTimeLink('${downloadUrl}', '${file.name}')">🔐 رابط زبون لمرة واحدة</button>
+                            <button class="btn-small" style="background:#7c3aed" onclick="createOneTimeLink('${downloadUrl}', '${file.name}', '${file.sha}')">🔒 إنشاء ونسخ رابط لمرة واحدة</button>
                             <button class="btn-small btn-replace" onclick="replaceFile('${file.name}', '${file.sha}')">🔄 استبدال</button>
                             <button class="btn-small btn-delete" onclick="deleteFile('${file.name}', '${file.sha}')">❌ حذف</button>
                         </div>
+                        <div id="one-time-${file.sha}" class="file-link" style="display:none;margin-top:10px;background:#ecfdf5;color:#065f46"></div>
                     </div>
                 `;
             });
@@ -326,26 +327,30 @@
         
         reader.readAsDataURL(file);
     }
-    async function createOneTimeLink(apkUrl, appName) {
-        const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\/$/, "");
+    async function createOneTimeLink(apkUrl, appName, fileSha) {
+        const projectUrl = document.getElementById("sbUrl").value.trim().replace(/\\/$/, "");
         const anonKey = document.getElementById("sbAnon").value.trim();
         const adminKey = document.getElementById("sbAdmin").value.trim();
-        const resultBox = document.getElementById("oneTimeResult");
-        if (!projectUrl || !anonKey || !adminKey) { showToast("أدخل إعدادات Supabase الثلاثة أولاً.", "warning"); return; }
+        const resultBox = document.getElementById("one-time-" + fileSha);
+        const button = Array.from(document.querySelectorAll(".buttons-grid button")).find(b => b.getAttribute("onclick") && b.getAttribute("onclick").includes(fileSha));
+        if (!projectUrl || !anonKey || !adminKey) { showToast("أدخل مفتاح الإدارة في إعدادات روابط الزبائن بالأعلى أولاً.", "warning"); return; }
+        if (button) { button.disabled = true; button.textContent = "⏳ جاري إنشاء الرابط..."; }
         try {
             const response = await fetch(projectUrl + "/functions/v1/create-download-link", {
                 method: "POST", headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": "Bearer " + anonKey },
-                body: JSON.stringify({ adminKey: adminKey, apkUrl: apkUrl, appName: appName })
+                body: JSON.stringify({ adminKey, apkUrl, appName })
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "تعذر إنشاء الرابط");
-            resultBox.style.display = "block"; resultBox.textContent = "رابط الاستخدام الواحد: " + data.downloadUrl;
-            const copy = document.createElement("button"); copy.className = "btn-small"; copy.textContent = "📋 نسخ الرابط";
-            copy.onclick = () => navigator.clipboard.writeText(data.downloadUrl).then(() => showToast("تم نسخ الرابط"));
-            const aftv = document.createElement("button"); aftv.className = "btn-small btn-downloader"; aftv.textContent = "فتح AFTVnews لإنشاء كود";
-            aftv.onclick = () => navigator.clipboard.writeText(data.downloadUrl).then(() => { window.open("https://go.aftvnews.com/", "_blank"); showToast("تم نسخ رابط الزبون. الصقه في AFTVnews لإنشاء كود Downloader.", "success"); }); resultBox.append(document.createElement("br"), copy, aftv);
-            showToast("تم إنشاء الرابط. سجّله في AFTVnews للحصول على كود Downloader.", "success");
-        } catch (error) { showToast("خطأ: " + error.message, "error"); }
+            resultBox.style.display = "block";
+            resultBox.textContent = data.downloadUrl;
+            await navigator.clipboard.writeText(data.downloadUrl);
+            showToast("تم إنشاء رابط " + appName + " ونسخه مباشرةً 📋", "success");
+        } catch (error) {
+            showToast("تعذر إنشاء/نسخ الرابط: " + error.message, "error");
+        } finally {
+            if (button) { button.disabled = false; button.textContent = "🔒 إنشاء ونسخ رابط لمرة واحدة"; }
+        }
     }
 </script>
 
