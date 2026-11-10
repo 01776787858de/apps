@@ -63,7 +63,7 @@
             <input type="text" id="appName" placeholder="مثال: iptv-app.apk">
         </div>
         <button id="uploadBtn" onclick="uploadFile()">🚀 رفع التطبيق للسيرفر</button>
-        <button onclick="logout()" style="background-color: #64748b; margin-top: 10px;">تسجيل الخروج (مسح الرمز)</button>
+        <button onclick="logout()" style="background-color: #64748b; margin-top: 10px;">تغيير رمز GitHub</button>
 
         <div class="progress-container" id="progressContainer">
             <div class="progress-bar" id="progressBar">0%</div>
@@ -89,8 +89,9 @@
     const GITHUB_PAGES_URL = "https://01776787858de.github.io/apps";
     
     window.onload = function() {
-        // Public APK listing works without a GitHub token. A token is only needed for writes.
-        document.getElementById("tokenScreen").style.display = "block";
+        // Public APK listing works without a GitHub token.
+        const token = localStorage.getItem("github_token");
+        document.getElementById("tokenScreen").style.display = token ? "none" : "block";
         document.getElementById("mainDashboard").style.display = "block";
         fetchFiles();
     };
@@ -106,22 +107,39 @@
         setTimeout(() => { toast.remove(); }, 4000);
     }
 
-    function saveToken() {
+    async function saveToken() {
         const tokenVal = document.getElementById("ghTokenInput").value.trim();
         if (!tokenVal.startsWith("ghp_") && !tokenVal.startsWith("github_pat_")) {
             showToast("الرمز غير صحيح! يجب أن يبدأ بـ ghp_ أو github_pat_", "error");
             return;
         }
-        localStorage.setItem("github_token", tokenVal);
-        document.getElementById("ghTokenInput").value = "";
-        document.getElementById("mainDashboard").style.display = "block";
-        showToast("تم حفظ GitHub Token على هذا الجهاز. ✅", "success");
+        try {
+            const response = await fetch(`https://api.github.com/repos/${REPO}`, {
+                headers: {
+                    "Authorization": "Bearer " + tokenVal,
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28"
+                },
+                cache: "no-store"
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || "GitHub رفض الرمز");
+            if (data?.permissions?.push !== true) throw new Error("الرمز لا يملك صلاحية الكتابة على مستودع apps");
+            localStorage.setItem("github_token", tokenVal);
+            document.getElementById("ghTokenInput").value = "";
+            document.getElementById("tokenScreen").style.display = "none";
+            document.getElementById("mainDashboard").style.display = "block";
+            showToast("تم التحقق من GitHub Token وحفظه بنجاح ✅", "success");
+        } catch (error) {
+            showToast("رمز GitHub غير صالح أو ناقص الصلاحيات: " + error.message, "error");
+        }
     }
 
     function logout() {
         localStorage.removeItem("github_token");
         document.getElementById("ghTokenInput").value = "";
-        showToast("تم مسح GitHub Token. ستبقى التطبيقات ظاهرة، لكن الرفع والتعديل والحذف تحتاج رمزاً صالحاً.", "warning");
+        document.getElementById("tokenScreen").style.display = "block";
+        showToast("أدخل رمز GitHub جديداً. ستبقى التطبيقات ظاهرة أثناء ذلك.", "warning");
         fetchFiles();
     }
 
