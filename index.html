@@ -45,13 +45,8 @@
 <div class="container">
     <h1>لوحة إدارة تطبيقات المتجر 📱</h1>
 
-    <div id="tokenScreen">
-        <h3 style="margin-top:0;">إعداد الأمان 🔒</h3>
-        <p>أدخل GitHub Token هنا أو استبدل الرمز القديم إذا ظهر خطأ Bad credentials. يُحفظ على جهازك فقط، ولا ترسله لأي شخص.</p>
-        <div class="form-group">
-            <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxx...">
-        </div>
-        <button onclick="saveToken()" style="background-color: #28a745;">حفظ الرمز والدخول ✔️</button>
+    <div style="background:#ecfdf5;padding:12px;border-radius:8px;margin-bottom:18px;color:#065f46;">
+        ✅ الرفع المباشر إلى مساحة التخزين — لا يحتاج GitHub Token.
     </div>
 
     <div id="mainDashboard" style="display: none;">
@@ -64,8 +59,7 @@
             <input type="text" id="appName" placeholder="مثال: iptv-app.apk">
         </div>
         <button id="uploadBtn" onclick="uploadFile()">🚀 رفع التطبيق إلى GitHub</button>
-        <button onclick="logout()" style="background-color: #64748b; margin-top: 10px;">تغيير رمز GitHub</button>
-
+        
         <div class="progress-container" id="progressContainer">
             <div class="progress-bar" id="progressBar">0%</div>
         </div>
@@ -75,9 +69,9 @@
             <div id="filesContainer">⏳ جاري جلب التطبيقات...</div>
         </div>
         <div style="margin-top: 32px;">
-            <h2>🚀 تطبيقات الرفع الكبير (GitHub Releases)</h2>
-            <p>يدعم ملفات APK الكبيرة حتى أقل من 2 GB لكل ملف.</p>
-            <div id="releaseFilesContainer">⏳ جاري جلب التطبيقات الكبيرة...</div>
+            <h2>☁️ التطبيقات المرفوعة مباشرة</h2>
+            <p>روابط تحميل مباشرة من مساحة التخزين، حتى 500 MB للملف.</p>
+            <div id="releaseFilesContainer">⏳ جاري جلب التطبيقات...</div>
         </div>
     </div>
 </div>
@@ -90,9 +84,6 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8";
     
     window.onload = function() {
-        // Public APK listing works without a GitHub token.
-        // Always show token entry so the user can replace an invalid saved token.
-        document.getElementById("tokenScreen").style.display = "block";
         document.getElementById("mainDashboard").style.display = "block";
         fetchFiles();
         fetchReleaseAssets();
@@ -402,14 +393,63 @@
         } catch (error) { showToast("تعذر الحذف: " + error.message, "error"); }
     }
 
+    async function fetchReleaseAssets() {
+        const container = document.getElementById("releaseFilesContainer");
+        try {
+            const response = await fetch(SUPABASE_URL + "/functions/v1/apk-storage-admin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + SUPABASE_ANON_KEY },
+                body: JSON.stringify({ action: "list" }),
+                cache: "no-store"
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "تعذر جلب التطبيقات");
+            const files = data.files || [];
+            if (!files.length) {
+                container.innerHTML = "<p>لا توجد تطبيقات مرفوعة بعد.</p>";
+                return;
+            }
+            container.innerHTML = "";
+            files.forEach((file, index) => {
+                const item = document.createElement("div");
+                item.className = "file-item";
+                const name = document.createElement("div");
+                name.className = "file-name";
+                const size = file.size ? " · " + (file.size / (1024 * 1024)).toFixed(1) + " MB" : "";
+                name.textContent = "📱 " + file.name + size;
+                const link = document.createElement("div");
+                link.className = "file-link";
+                link.textContent = file.url;
+                const buttons = document.createElement("div");
+                buttons.className = "buttons-grid";
+                const copy = document.createElement("button");
+                copy.className = "btn-small btn-copy";
+                copy.textContent = "📋 نسخ الرابط";
+                copy.onclick = () => navigator.clipboard.writeText(file.url).then(() => showToast("تم نسخ الرابط", "success"));
+                const once = document.createElement("button");
+                once.className = "btn-small";
+                once.style.background = "#7c3aed";
+                once.textContent = "🔒 رابط لمرة واحدة";
+                once.onclick = () => createOneTimeLink(file.url, file.name, "storage-" + index);
+                const aftv = document.createElement("button");
+                aftv.className = "btn-small btn-downloader";
+                aftv.textContent = "📺 كود AFTVnews";
+                aftv.onclick = () => openDownloaderSite(file.url);
+                buttons.append(copy, once, aftv);
+                item.append(name, link, buttons);
+                container.appendChild(item);
+            });
+        } catch (error) {
+            container.textContent = "تعذر جلب التطبيقات: " + error.message;
+        }
+    }
+
     async function processUpload(file, filename, sha) {
         const uploadBtn = document.getElementById("uploadBtn");
         const progressContainer = document.getElementById("progressContainer");
         const progressBar = document.getElementById("progressBar");
-        const token = localStorage.getItem("github_token");
-        if (!token) { showToast("أدخل GitHub Token أولاً من إعداد الأمان.", "warning"); return; }
-        if (file.size >= 2 * 1024 * 1024 * 1024) {
-            showToast("يجب أن يكون حجم الملف أقل من 2 GB.", "error"); return;
+        if (file.size > 500 * 1024 * 1024) {
+            showToast("حجم الملف يجب أن يكون أقل من 500 MB.", "error"); return;
         }
         const cleanName = filename.split(/[\\/]/).pop().replace(/[^a-zA-Z0-9._-]/g, "_");
         if (!cleanName.toLowerCase().endsWith(".apk")) { showToast("اسم الملف يجب أن ينتهي بـ .apk", "error"); return; }
@@ -417,25 +457,19 @@
         progressContainer.style.display = "block";
         progressBar.style.width = "0%"; progressBar.textContent = "0%";
         try {
-            const release = await getOrCreateUploadRelease(token);
-            const headers = {
-                "Authorization": "Bearer " + token,
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28"
-            };
-            const existing = (release.assets || []).find(asset => asset.name.toLowerCase() === cleanName.toLowerCase());
-            if (existing) {
-                const remove = await fetch("https://api.github.com/repos/" + REPO + "/releases/assets/" + existing.id, { method: "DELETE", headers });
-                if (!remove.ok && remove.status !== 204) throw new Error("تعذر حذف النسخة القديمة قبل الاستبدال");
-            }
-            const uploadUrl = release.upload_url.replace(/\{\?name,label\}$/, "") + "?name=" + encodeURIComponent(cleanName);
+            const prepareResponse = await fetch(SUPABASE_URL + "/functions/v1/apk-storage-admin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + SUPABASE_ANON_KEY },
+                body: JSON.stringify({ action: "prepare-upload", filename: cleanName, size: file.size })
+            });
+            const prepared = await prepareResponse.json();
+            if (!prepareResponse.ok) throw new Error(prepared.error || "تعذر تجهيز رابط الرفع");
+
             await new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
-                xhr.open("POST", uploadUrl);
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-                xhr.setRequestHeader("Accept", "application/vnd.github+json");
-                xhr.setRequestHeader("X-GitHub-Api-Version", "2022-11-28");
+                xhr.open("PUT", prepared.uploadUrl);
                 xhr.setRequestHeader("Content-Type", "application/vnd.android.package-archive");
+                xhr.setRequestHeader("x-upsert", "true");
                 xhr.upload.onprogress = event => {
                     if (event.lengthComputable) {
                         const percent = Math.round((event.loaded / event.total) * 100);
@@ -445,18 +479,15 @@
                 };
                 xhr.onload = () => {
                     if (xhr.status >= 200 && xhr.status < 300) resolve();
-                    else {
-                        let message = "فشل رفع الملف إلى GitHub";
-                        try { message = JSON.parse(xhr.responseText).message || message; } catch (_) {}
-                        reject(new Error("رفع ملف APK إلى Releases (" + xhr.status + "): " + message));
-                    }
+                    else reject(new Error("Supabase Storage (" + xhr.status + "): " + (xhr.responseText || "فشل رفع الملف")));
                 };
                 xhr.onerror = () => reject(new Error("انقطع الاتصال أثناء الرفع"));
                 xhr.onabort = () => reject(new Error("تم إلغاء الرفع"));
                 xhr.send(file);
             });
+
             progressBar.style.width = "100%"; progressBar.textContent = "100%";
-            showToast("تم رفع التطبيق الكبير بنجاح 🎉", "success");
+            showToast("تم رفع التطبيق بنجاح إلى التخزين المباشر 🎉", "success");
             document.getElementById("apkFile").value = "";
             document.getElementById("appName").value = "";
             fetchReleaseAssets();
