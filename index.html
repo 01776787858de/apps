@@ -71,7 +71,7 @@
         </div>
         <div style="margin-top: 32px;">
             <h2>☁️ التطبيقات المرفوعة مباشرة</h2>
-            <p>روابط تحميل مباشرة من مساحة التخزين، حتى 500 MB للملف.</p>
+            <p>روابط تحميل مباشرة من مساحة التخزين، حتى 50 MB للملف في الخطة الحالية.</p>
             <div id="releaseFilesContainer">⏳ جاري جلب التطبيقات...</div>
         </div>
     </div>
@@ -449,8 +449,8 @@
         const uploadBtn = document.getElementById("uploadBtn");
         const progressContainer = document.getElementById("progressContainer");
         const progressBar = document.getElementById("progressBar");
-        if (file.size > 500 * 1024 * 1024) {
-            showToast("حجم الملف يجب أن يكون أقل من 500 MB.", "error"); return;
+        if (file.size > 50 * 1024 * 1024) {
+            showToast("مشروع Supabase المجاني يسمح بملف حتى 50 MB فقط. ملفك أكبر من الحد.", "error"); return;
         }
         const cleanName = filename.split(/[\\/]/).pop().replace(/[^a-zA-Z0-9._-]/g, "_");
         if (!cleanName.toLowerCase().endsWith(".apk")) { showToast("اسم الملف يجب أن ينتهي بـ .apk", "error"); return; }
@@ -473,8 +473,7 @@
                     retryDelays: [0, 3000, 5000, 10000, 20000],
                     headers: {
                         apikey: SUPABASE_ANON_KEY,
-                        "x-signature": prepared.token,
-                        "x-upsert": "true"
+                        "x-signature": prepared.token
                     },
                     uploadDataDuringCreation: true,
                     removeFingerprintOnSuccess: true,
