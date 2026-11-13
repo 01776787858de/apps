@@ -36,7 +36,7 @@
         .toast { padding: 14px 24px; border-radius: 8px; font-weight: bold; color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.2); animation: slide 0.3s ease; }
         @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
     </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 <body>
 
@@ -54,14 +54,6 @@
         <button onclick="saveToken()" style="background-color: #28a745;">حفظ الرمز والدخول ✔️</button>
     </div>
 
-    <div id="supabaseAuth" style="background:#eef6ff;padding:18px;border-radius:8px;margin-bottom:18px;">
-        <h3>🔐 تسجيل دخول المالك لرفع التطبيقات</h3>
-        <p>استخدم بريدك وكلمة مرور حساب Supabase. هذا الدخول خاص بالرفع ولا يطلب GitHub Token.</p>
-        <input type="email" id="sbEmail" placeholder="البريد الإلكتروني" value="01776787858de@gmail.com" style="width:100%;padding:12px;box-sizing:border-box;margin-bottom:8px">
-        <input type="password" id="sbPassword" placeholder="كلمة مرور Supabase" style="width:100%;padding:12px;box-sizing:border-box;margin-bottom:8px">
-        <button onclick="supabaseLogin()">تسجيل الدخول</button>
-        <div id="sbAuthStatus" style="margin-top:8px"></div>
-    </div>
     <div id="mainDashboard" style="display: none;">
         <div class="form-group">
             <label>1. اختر التطبيق من الجوال:</label>
@@ -71,8 +63,7 @@
             <label>2. اسم التطبيق النهائي:</label>
             <input type="text" id="appName" placeholder="مثال: iptv-app.apk">
         </div>
-        <button id="uploadBtn" onclick="uploadFile()">🚀 رفع التطبيق إلى Supabase (يدعم الملفات الكبيرة)</button>
-        <div id="sbUserBar" style="display:none;margin-top:8px;color:#166534">✅ تم تسجيل دخول المالك <button class="btn-small" onclick="supabaseLogout()">تسجيل خروج Supabase</button></div>
+        <button id="uploadBtn" onclick="uploadFile()">🚀 رفع التطبيق إلى GitHub</button>
         <button onclick="logout()" style="background-color: #64748b; margin-top: 10px;">تغيير رمز GitHub</button>
 
         <div class="progress-container" id="progressContainer">
@@ -80,8 +71,6 @@
         </div>
 
         <div style="margin-top: 40px;">
-            <h2>📦 التطبيقات المرفوعة على Supabase</h2>
-            <div id="storageFilesContainer">⏳ جاري جلب ملفات Supabase...</div>
             <h2>📦 تطبيقات GitHub القديمة</h2>
             <div id="filesContainer">⏳ جاري جلب التطبيقات...</div>
         </div>
@@ -96,13 +85,6 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdXV3YndyZ21hYW92bm1jb3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNzMwOTcsImV4cCI6MjEwOTg0OTA5N30.sLxHyBr5FPMvZRmJ6g5jPLvbzOf3EbIndYQqBFjHtJ8";
     
     window.onload = function() {
-        sbClient.auth.getSession().then(({data}) => {
-            if (data.session) {
-                document.getElementById("sbUserBar").style.display = "block";
-                document.getElementById("sbAuthStatus").textContent = "مسجل دخول بالفعل.";
-            }
-        });
-        setTimeout(() => { if (window.tus) console.log("TUS ready"); }, 1500);
         // Public APK listing works without a GitHub token.
         const token = localStorage.getItem("github_token");
         document.getElementById("tokenScreen").style.display = token ? "none" : "block";
@@ -303,78 +285,53 @@
         processUpload(file, filename, null);
     }
 
-    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const tusScript = document.createElement("script");
-    tusScript.src = "https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js";
-    document.head.appendChild(tusScript);
-
-    async function supabaseLogin() {
-        const email = document.getElementById("sbEmail").value.trim();
-        const password = document.getElementById("sbPassword").value;
-        const status = document.getElementById("sbAuthStatus");
-        status.textContent = "⏳ جاري تسجيل الدخول...";
-        const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-        if (error) { status.textContent = "تعذر تسجيل الدخول: " + error.message; return; }
-        status.textContent = "تم تسجيل الدخول بنجاح ✅";
-        document.getElementById("sbUserBar").style.display = "block";
-        loadStorageFiles();
-    }
-    async function supabaseLogout() {
-        await sbClient.auth.signOut();
-        document.getElementById("sbUserBar").style.display = "none";
-        document.getElementById("sbAuthStatus").textContent = "تم تسجيل الخروج.";
-    }
-    async function loadStorageFiles() {
-        const box = document.getElementById("storageFilesContainer");
-        try {
-            const { data, error } = await sbClient.storage.from("apk-files").list("", { limit: 500, sortBy: { column: "name", order: "asc" } });
-            if (error) throw error;
-            const files = (data || []).filter(x => x.name && x.name.toLowerCase().endsWith(".apk"));
-            if (!files.length) { box.innerHTML = "<p>لا توجد ملفات APK على Supabase حالياً.</p>"; return; }
-            box.innerHTML = "";
-            files.forEach(file => {
-                const path = file.name;
-                const url = SUPABASE_URL + "/storage/v1/object/public/apk-files/" + encodeURIComponent(path);
-                const id = "sb-" + btoa(unescape(encodeURIComponent(path))).replace(/[^a-z0-9]/gi,"").slice(0,24);
-                const card = document.createElement("div");
-                card.className = "file-item";
-                const name = document.createElement("div"); name.className = "file-name"; name.textContent = "🤖 " + path;
-                const link = document.createElement("div"); link.className = "file-link"; link.textContent = url;
-                const btn = document.createElement("button"); btn.className = "btn-small"; btn.textContent = "🔒 إنشاء رابط لمرة واحدة";
-                btn.onclick = () => createOneTimeLink(url, path, id);
-                card.append(name, link, btn); box.appendChild(card);
-            });
-        } catch (e) { box.textContent = "تعذر جلب ملفات Supabase: " + e.message; }
-    }
-
     async function processUpload(file, filename, sha) {
         const uploadBtn = document.getElementById("uploadBtn");
         const progressContainer = document.getElementById("progressContainer");
         const progressBar = document.getElementById("progressBar");
-        const { data: { session } } = await sbClient.auth.getSession();
-        if (!session) { showToast("سجّل دخول المالك من قسم Supabase أولاً.", "warning"); return; }
-        if (!window.tus || !window.tus.Upload) { showToast("مكتبة الرفع لم تجهز بعد، حدّث الصفحة وحاول مجدداً.", "error"); return; }
-        if (file.size > 500 * 1024 * 1024) { showToast("الحد الحالي 500 MB.", "error"); return; }
-        const cleanName = filename.replace(/[\\/]/g, "-").replace(/[^\p{L}\p{N}._-]/gu, "_");
-        uploadBtn.disabled = true; progressContainer.style.display = "block";
-        progressBar.style.width = "0%"; progressBar.textContent = "0%";
-        const objectPath = cleanName;
-        const upload = new tus.Upload(file, {
-            endpoint: "https://hauuwbwrgmaaovnmcoug.storage.supabase.co/storage/v1/upload/resumable",
-            retryDelays: [0, 3000, 5000, 10000, 20000],
-            headers: { authorization: "Bearer " + session.access_token, apikey: SUPABASE_ANON_KEY, "x-upsert": "true" },
-            uploadDataDuringCreation: true, removeFingerprintOnSuccess: true,
-            chunkSize: 6 * 1024 * 1024,
-            metadata: { bucketName: "apk-files", objectName: objectPath, contentType: "application/vnd.android.package-archive", cacheControl: "3600" },
-            onError: error => { uploadBtn.disabled = false; progressContainer.style.display = "none"; showToast("فشل الرفع: " + error.message, "error"); },
-            onProgress: (sent, total) => { const p = Math.round(sent / total * 100); progressBar.style.width = p + "%"; progressBar.textContent = p + "%"; },
-            onSuccess: () => { uploadBtn.disabled = false; progressContainer.style.display = "none"; showToast("تم رفع التطبيق إلى Supabase بنجاح 🎉", "success"); document.getElementById("apkFile").value = ""; document.getElementById("appName").value = ""; loadStorageFiles(); }
-        });
+        const token = localStorage.getItem("github_token");
+        if (!token) { showToast("احفظ GitHub Token أولاً من قسم إعداد الأمان.", "warning"); return; }
+        if (file.size > 25 * 1024 * 1024) {
+            showToast("حجم الملف أكبر من 25 MB. الرفع المباشر إلى GitHub يدعم الملفات الصغيرة فقط.", "error");
+            return;
+        }
+        const cleanName = filename.replace(/[\\/]/g, "-").replace(/[^\\p{L}\\p{N}._-]/gu, "_");
+        uploadBtn.disabled = true;
+        progressContainer.style.display = "block";
+        progressBar.style.width = "10%"; progressBar.textContent = "10%";
         try {
-            const previous = await upload.findPreviousUploads();
-            if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
-            upload.start();
-        } catch (e) { uploadBtn.disabled = false; progressContainer.style.display = "none"; showToast("تعذر بدء الرفع: " + e.message, "error"); }
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result).split(",")[1]);
+                reader.onerror = () => reject(new Error("تعذرت قراءة الملف"));
+                reader.readAsDataURL(file);
+            });
+            progressBar.style.width = "55%"; progressBar.textContent = "55%";
+            const body = { message: (sha ? "Replace " : "Upload ") + cleanName, content: base64 };
+            if (sha) body.sha = sha;
+            const response = await fetch("https://api.github.com/repos/" + REPO + "/contents/" + encodeURIComponent(cleanName), {
+                method: "PUT",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || "GitHub رفض عملية الرفع");
+            progressBar.style.width = "100%"; progressBar.textContent = "100%";
+            showToast("تم رفع التطبيق إلى GitHub بنجاح 🎉", "success");
+            document.getElementById("apkFile").value = "";
+            document.getElementById("appName").value = "";
+            fetchFiles();
+        } catch (error) {
+            showToast("فشل الرفع: " + error.message, "error");
+        } finally {
+            uploadBtn.disabled = false;
+            setTimeout(() => { progressContainer.style.display = "none"; }, 1200);
+        }
     }
 
     async function createOneTimeLink(apkUrl, appName, fileSha) {
