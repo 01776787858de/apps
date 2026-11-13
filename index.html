@@ -37,6 +37,7 @@
         @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
     </style>
 
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 </head>
 <body>
 
@@ -465,25 +466,37 @@
             const prepared = await prepareResponse.json();
             if (!prepareResponse.ok) throw new Error(prepared.error || "تعذر تجهيز رابط الرفع");
 
+            if (typeof tus === "undefined") throw new Error("تعذر تحميل مكتبة الرفع المجزأ. حدّث الصفحة وحاول مجدداً.");
             await new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open("PUT", prepared.uploadUrl);
-                xhr.setRequestHeader("Content-Type", "application/vnd.android.package-archive");
-                xhr.setRequestHeader("x-upsert", "true");
-                xhr.upload.onprogress = event => {
-                    if (event.lengthComputable) {
-                        const percent = Math.round((event.loaded / event.total) * 100);
+                const upload = new tus.Upload(file, {
+                    endpoint: "https://hauuwbwrgmaaovnmcoug.storage.supabase.co/storage/v1/upload/resumable",
+                    retryDelays: [0, 3000, 5000, 10000, 20000],
+                    headers: {
+                        apikey: SUPABASE_ANON_KEY,
+                        "x-signature": prepared.token,
+                        "x-upsert": "true"
+                    },
+                    uploadDataDuringCreation: true,
+                    removeFingerprintOnSuccess: true,
+                    chunkSize: 6 * 1024 * 1024,
+                    metadata: {
+                        bucketName: "apk-files",
+                        objectName: prepared.path,
+                        contentType: "application/vnd.android.package-archive",
+                        cacheControl: "3600"
+                    },
+                    onError: error => reject(error),
+                    onProgress: (uploaded, total) => {
+                        const percent = Math.round((uploaded / total) * 100);
                         progressBar.style.width = percent + "%";
                         progressBar.textContent = percent + "%";
-                    }
-                };
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) resolve();
-                    else reject(new Error("Supabase Storage (" + xhr.status + "): " + (xhr.responseText || "فشل رفع الملف")));
-                };
-                xhr.onerror = () => reject(new Error("انقطع الاتصال أثناء الرفع"));
-                xhr.onabort = () => reject(new Error("تم إلغاء الرفع"));
-                xhr.send(file);
+                    },
+                    onSuccess: () => resolve()
+                });
+                upload.findPreviousUploads().then(previous => {
+                    if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
+                    upload.start();
+                }).catch(reject);
             });
 
             progressBar.style.width = "100%"; progressBar.textContent = "100%";
