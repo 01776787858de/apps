@@ -125,8 +125,19 @@
                 cache: "no-store"
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || "GitHub رفض الرمز");
+            if (!response.ok) throw new Error("فحص المستودع فشل (" + response.status + "): " + (data.message || "GitHub رفض الرمز"));
             if (data?.permissions?.push !== true) throw new Error("الرمز لا يملك صلاحية الكتابة على مستودع apps");
+            // Verify the exact Releases endpoint used by APK uploads, not just repository access.
+            const releaseCheck = await fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=1", {
+                headers: {
+                    "Authorization": "Bearer " + tokenVal,
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28"
+                },
+                cache: "no-store"
+            });
+            const releaseData = await releaseCheck.json();
+            if (!releaseCheck.ok) throw new Error("فشل فحص صلاحية Releases (" + releaseCheck.status + "): " + (releaseData.message || "لا يمكن الوصول إلى Releases"));
             localStorage.setItem("github_token", tokenVal);
             document.getElementById("ghTokenInput").value = "";
             document.getElementById("tokenScreen").style.display = "none";
@@ -299,7 +310,7 @@
         };
         const listRes = await fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=100", { headers, cache: "no-store" });
         const releases = await listRes.json();
-        if (!listRes.ok) throw new Error(releases.message || "تعذر قراءة إصدارات GitHub");
+        if (!listRes.ok) throw new Error("قراءة Releases (" + listRes.status + "): " + (releases.message || "رفض GitHub الطلب"));
         let release = releases.find(item => item.tag_name === "apps-downloads");
         if (!release) {
             const createRes = await fetch("https://api.github.com/repos/" + REPO + "/releases", {
@@ -315,7 +326,7 @@
                 })
             });
             release = await createRes.json();
-            if (!createRes.ok) throw new Error(release.message || "تعذر إنشاء مساحة رفع التطبيقات");
+            if (!createRes.ok) throw new Error("إنشاء Release (" + createRes.status + "): " + (release.message || "رفض GitHub الطلب") + (release.documentation_url ? " · " + release.documentation_url : ""));
         }
         return release;
     }
@@ -437,7 +448,7 @@
                     else {
                         let message = "فشل رفع الملف إلى GitHub";
                         try { message = JSON.parse(xhr.responseText).message || message; } catch (_) {}
-                        reject(new Error(message + " (" + xhr.status + ")"));
+                        reject(new Error("رفع ملف APK إلى Releases (" + xhr.status + "): " + message));
                     }
                 };
                 xhr.onerror = () => reject(new Error("انقطع الاتصال أثناء الرفع"));
