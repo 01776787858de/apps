@@ -473,8 +473,7 @@
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "تعذر إنشاء الرابط");
-            resultBox.style.display = "block";
-            resultBox.textContent = data.downloadUrl;
+            if (resultBox) { resultBox.style.display = "block"; resultBox.textContent = data.downloadUrl; }
             await navigator.clipboard.writeText(data.downloadUrl);
             showToast("تم إنشاء رابط " + appName + " ونسخه مباشرةً 📋", "success");
         } catch (error) {
