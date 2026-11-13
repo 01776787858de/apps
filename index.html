@@ -47,7 +47,7 @@
 
     <div id="tokenScreen">
         <h3 style="margin-top:0;">إعداد الأمان 🔒</h3>
-        <p>عرض التطبيقات لا يحتاج رمزاً. أدخل GitHub Token صالحاً فقط عند الرفع أو الاستبدال أو الحذف. يُحفظ على جهازك فقط.</p>
+        <p>أدخل GitHub Token هنا أو استبدل الرمز القديم إذا ظهر خطأ Bad credentials. يُحفظ على جهازك فقط، ولا ترسله لأي شخص.</p>
         <div class="form-group">
             <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxx...">
         </div>
@@ -91,8 +91,8 @@
     
     window.onload = function() {
         // Public APK listing works without a GitHub token.
-        const token = localStorage.getItem("github_token");
-        document.getElementById("tokenScreen").style.display = token ? "none" : "block";
+        // Always show token entry so the user can replace an invalid saved token.
+        document.getElementById("tokenScreen").style.display = "block";
         document.getElementById("mainDashboard").style.display = "block";
         fetchFiles();
         fetchReleaseAssets();
