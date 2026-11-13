@@ -70,9 +70,14 @@
             <div class="progress-bar" id="progressBar">0%</div>
         </div>
 
-        <div style="margin-top: 40px;">
-            <h2>📦 تطبيقات GitHub القديمة</h2>
+        <div style="margin-top: 32px;">
+            <h2>📦 التطبيقات القديمة</h2>
             <div id="filesContainer">⏳ جاري جلب التطبيقات...</div>
+        </div>
+        <div style="margin-top: 32px;">
+            <h2>🚀 تطبيقات الرفع الكبير (GitHub Releases)</h2>
+            <p>يدعم ملفات APK الكبيرة حتى أقل من 2 GB لكل ملف.</p>
+            <div id="releaseFilesContainer">⏳ جاري جلب التطبيقات الكبيرة...</div>
         </div>
     </div>
 </div>
@@ -90,6 +95,7 @@
         document.getElementById("tokenScreen").style.display = token ? "none" : "block";
         document.getElementById("mainDashboard").style.display = "block";
         fetchFiles();
+        fetchReleaseAssets();
     };
 
     function showToast(msg, type = 'success') {
@@ -285,52 +291,169 @@
         processUpload(file, filename, null);
     }
 
+    async function getOrCreateUploadRelease(token) {
+        const headers = {
+            "Authorization": "Bearer " + token,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        };
+        const listRes = await fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=100", { headers, cache: "no-store" });
+        const releases = await listRes.json();
+        if (!listRes.ok) throw new Error(releases.message || "تعذر قراءة إصدارات GitHub");
+        let release = releases.find(item => item.tag_name === "apps-downloads");
+        if (!release) {
+            const createRes = await fetch("https://api.github.com/repos/" + REPO + "/releases", {
+                method: "POST",
+                headers: { ...headers, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tag_name: "apps-downloads",
+                    target_commitish: "main",
+                    name: "Apps Downloads",
+                    body: "APK files uploaded through the apps dashboard.",
+                    draft: false,
+                    prerelease: false
+                })
+            });
+            release = await createRes.json();
+            if (!createRes.ok) throw new Error(release.message || "تعذر إنشاء مساحة رفع التطبيقات");
+        }
+        return release;
+    }
+
+    async function fetchReleaseAssets() {
+        const container = document.getElementById("releaseFilesContainer");
+        try {
+            const response = await fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=100", {
+                headers: { "Accept": "application/vnd.github+json" },
+                cache: "no-store"
+            });
+            const releases = await response.json();
+            if (!response.ok) throw new Error(releases.message || "تعذر جلب الإصدارات");
+            const release = releases.find(item => item.tag_name === "apps-downloads");
+            const assets = release?.assets || [];
+            if (!assets.length) {
+                container.innerHTML = "<p>لا توجد تطبيقات كبيرة مرفوعة بعد. اختر ملف APK واضغط رفع التطبيق.</p>";
+                return;
+            }
+            container.innerHTML = "";
+            assets.filter(a => a.name.toLowerCase().endsWith(".apk")).forEach(asset => {
+                const item = document.createElement("div");
+                item.className = "file-item";
+                const name = document.createElement("div");
+                name.className = "file-name";
+                name.textContent = "📱 " + asset.name + " · " + (asset.size / (1024 * 1024)).toFixed(1) + " MB";
+                const link = document.createElement("div");
+                link.className = "file-link";
+                link.textContent = asset.browser_download_url;
+                const buttons = document.createElement("div");
+                buttons.className = "buttons-grid";
+                const copy = document.createElement("button");
+                copy.className = "btn-small btn-copy";
+                copy.textContent = "📋 نسخ الرابط";
+                copy.onclick = () => navigator.clipboard.writeText(asset.browser_download_url).then(() => showToast("تم نسخ الرابط", "success"));
+                const once = document.createElement("button");
+                once.className = "btn-small";
+                once.style.background = "#7c3aed";
+                once.textContent = "🔒 رابط لمرة واحدة";
+                once.onclick = () => createOneTimeLink(asset.browser_download_url, asset.name, "release-" + asset.id);
+                const aftv = document.createElement("button");
+                aftv.className = "btn-small btn-downloader";
+                aftv.textContent = "📺 AFTVnews";
+                aftv.onclick = () => openDownloaderSite(asset.browser_download_url);
+                const del = document.createElement("button");
+                del.className = "btn-small btn-delete";
+                del.textContent = "❌ حذف";
+                del.onclick = () => deleteReleaseAsset(asset.id, asset.name);
+                buttons.append(copy, once, aftv, del);
+                item.append(name, link, buttons);
+                container.appendChild(item);
+            });
+        } catch (error) {
+            container.textContent = "تعذر جلب التطبيقات الكبيرة: " + error.message;
+        }
+    }
+
+    async function deleteReleaseAsset(assetId, filename) {
+        const token = localStorage.getItem("github_token");
+        if (!token) { showToast("أدخل GitHub Token أولاً", "warning"); return; }
+        if (!confirm("هل تريد حذف " + filename + "؟")) return;
+        try {
+            const response = await fetch("https://api.github.com/repos/" + REPO + "/releases/assets/" + assetId, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }
+            });
+            if (!response.ok && response.status !== 204) {
+                const data = await response.json();
+                throw new Error(data.message || "فشل الحذف");
+            }
+            showToast("تم حذف التطبيق", "success");
+            fetchReleaseAssets();
+        } catch (error) { showToast("تعذر الحذف: " + error.message, "error"); }
+    }
+
     async function processUpload(file, filename, sha) {
         const uploadBtn = document.getElementById("uploadBtn");
         const progressContainer = document.getElementById("progressContainer");
         const progressBar = document.getElementById("progressBar");
         const token = localStorage.getItem("github_token");
-        if (!token) { showToast("احفظ GitHub Token أولاً من قسم إعداد الأمان.", "warning"); return; }
-        if (file.size > 25 * 1024 * 1024) {
-            showToast("حجم الملف أكبر من 25 MB. الرفع المباشر إلى GitHub يدعم الملفات الصغيرة فقط.", "error");
-            return;
+        if (!token) { showToast("أدخل GitHub Token أولاً من إعداد الأمان.", "warning"); return; }
+        if (file.size >= 2 * 1024 * 1024 * 1024) {
+            showToast("يجب أن يكون حجم الملف أقل من 2 GB.", "error"); return;
         }
-        const cleanName = filename.replace(/[\\/]/g, "-").replace(/[^\\p{L}\\p{N}._-]/gu, "_");
+        const cleanName = filename.split(/[\\/]/).pop().replace(/[^a-zA-Z0-9._-]/g, "_");
+        if (!cleanName.toLowerCase().endsWith(".apk")) { showToast("اسم الملف يجب أن ينتهي بـ .apk", "error"); return; }
         uploadBtn.disabled = true;
         progressContainer.style.display = "block";
-        progressBar.style.width = "10%"; progressBar.textContent = "10%";
+        progressBar.style.width = "0%"; progressBar.textContent = "0%";
         try {
-            const base64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(String(reader.result).split(",")[1]);
-                reader.onerror = () => reject(new Error("تعذرت قراءة الملف"));
-                reader.readAsDataURL(file);
+            const release = await getOrCreateUploadRelease(token);
+            const headers = {
+                "Authorization": "Bearer " + token,
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            };
+            const existing = (release.assets || []).find(asset => asset.name.toLowerCase() === cleanName.toLowerCase());
+            if (existing) {
+                const remove = await fetch("https://api.github.com/repos/" + REPO + "/releases/assets/" + existing.id, { method: "DELETE", headers });
+                if (!remove.ok && remove.status !== 204) throw new Error("تعذر حذف النسخة القديمة قبل الاستبدال");
+            }
+            const uploadUrl = release.upload_url.replace(/\{\?name,label\}$/, "") + "?name=" + encodeURIComponent(cleanName);
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", uploadUrl);
+                xhr.setRequestHeader("Authorization", "Bearer " + token);
+                xhr.setRequestHeader("Accept", "application/vnd.github+json");
+                xhr.setRequestHeader("X-GitHub-Api-Version", "2022-11-28");
+                xhr.setRequestHeader("Content-Type", "application/vnd.android.package-archive");
+                xhr.upload.onprogress = event => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        progressBar.style.width = percent + "%";
+                        progressBar.textContent = percent + "%";
+                    }
+                };
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) resolve();
+                    else {
+                        let message = "فشل رفع الملف إلى GitHub";
+                        try { message = JSON.parse(xhr.responseText).message || message; } catch (_) {}
+                        reject(new Error(message + " (" + xhr.status + ")"));
+                    }
+                };
+                xhr.onerror = () => reject(new Error("انقطع الاتصال أثناء الرفع"));
+                xhr.onabort = () => reject(new Error("تم إلغاء الرفع"));
+                xhr.send(file);
             });
-            progressBar.style.width = "55%"; progressBar.textContent = "55%";
-            const body = { message: (sha ? "Replace " : "Upload ") + cleanName, content: base64 };
-            if (sha) body.sha = sha;
-            const response = await fetch("https://api.github.com/repos/" + REPO + "/contents/" + encodeURIComponent(cleanName), {
-                method: "PUT",
-                headers: {
-                    "Authorization": "Bearer " + token,
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(body)
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || "GitHub رفض عملية الرفع");
             progressBar.style.width = "100%"; progressBar.textContent = "100%";
-            showToast("تم رفع التطبيق إلى GitHub بنجاح 🎉", "success");
+            showToast("تم رفع التطبيق الكبير بنجاح 🎉", "success");
             document.getElementById("apkFile").value = "";
             document.getElementById("appName").value = "";
-            fetchFiles();
+            fetchReleaseAssets();
         } catch (error) {
             showToast("فشل الرفع: " + error.message, "error");
         } finally {
             uploadBtn.disabled = false;
-            setTimeout(() => { progressContainer.style.display = "none"; }, 1200);
+            setTimeout(() => { progressContainer.style.display = "none"; }, 1800);
         }
     }
 
